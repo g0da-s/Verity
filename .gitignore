@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Environment variables (contains API keys - NEVER commit!)
+.env
+*.env
+!.env.example
+
+# Database files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+data/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# LangGraph checkpoints
+checkpoints.db
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Logs
+*.log
+
+# Node (for frontend)
+node_modules/
+.next/
+out/
+.turbo/
+
+# Frontend build
+frontend/dist/
+frontend/build/
