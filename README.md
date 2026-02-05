@@ -83,4 +83,4 @@ uv run pytest tests/
 
 ---
 
-Built by Goda Smulk for Turing College.
+Built by Goda Smulkstyte for Turing College.
