@@ -1,4 +1,4 @@
-# 🔬 TruthCheck - Evidence-Based Health Claim Verification
+# 🔬 Verity - Evidence-Based Health Claim Verification
 
 An AI-powered application that verifies health claims using scientific evidence from PubMed, powered by Claude Sonnet 4.5 and LangGraph.
 

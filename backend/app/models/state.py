@@ -33,7 +33,7 @@ class Study(TypedDict, total=False):
     quality_rationale: str  # Why this score was assigned
 
 
-class TruthCheckState(TypedDict, total=False):
+class VerityState(TypedDict, total=False):
     """Main state object passed through the agent pipeline.
 
     Each agent reads from and writes to this shared state.

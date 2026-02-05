@@ -3,12 +3,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.api.routes import truthcheck
+from app.api.routes import verity
 
 
 # Create FastAPI app
 app = FastAPI(
-    title="TruthCheck API",
+    title="Verity API",
     description="Evidence-based health claim verification using PubMed and Claude AI",
     version="1.0.0",
     docs_url="/docs",
@@ -25,17 +25,17 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(truthcheck.router)
+app.include_router(verity.router)
 
 
 @app.get("/")
 async def root():
     """Root endpoint."""
     return {
-        "message": "TruthCheck API",
+        "message": "Verity API",
         "version": "1.0.0",
         "docs": "/docs",
-        "health": "/api/truthcheck/health"
+        "health": "/api/verity/health"
     }
 
 

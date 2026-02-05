@@ -13,7 +13,7 @@ from typing import List
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import settings
-from app.models.state import TruthCheckState
+from app.models.state import VerityState
 from app.tools.pubmed import PubMedTool
 
 
@@ -134,7 +134,7 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
 
         return all_studies
 
-    async def run(self, state: TruthCheckState) -> TruthCheckState:
+    async def run(self, state: VerityState) -> VerityState:
         """Execute Search Agent node in LangGraph workflow.
 
         Args:
@@ -192,7 +192,7 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
 
 
 # Node function for LangGraph
-async def search_node(state: TruthCheckState) -> TruthCheckState:
+async def search_node(state: VerityState) -> VerityState:
     """LangGraph node wrapper for Search Agent.
 
     This function is called by LangGraph during workflow execution.

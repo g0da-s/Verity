@@ -9,7 +9,7 @@ except Exception as e:
     print(f"❌ config failed: {e}")
 
 try:
-    from app.models.state import TruthCheckState, Study
+    from app.models.state import VerityState, Study
     print("✅ state models imported")
 except Exception as e:
     print(f"❌ state models failed: {e}")

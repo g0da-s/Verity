@@ -1,12 +1,12 @@
-"""TruthCheck API endpoints."""
+"""Verity API endpoints."""
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from app.graph import run_truthcheck
+from app.graph import run_verity
 
 
-router = APIRouter(prefix="/api/truthcheck", tags=["truthcheck"])
+router = APIRouter(prefix="/api/verity", tags=["verity"])
 
 
 # Request/Response models
@@ -83,7 +83,7 @@ class VerifyClaimResponse(BaseModel):
 async def verify_claim(request: VerifyClaimRequest):
     """Verify a health claim using evidence from PubMed.
 
-    This endpoint orchestrates the full TruthCheck pipeline:
+    This endpoint orchestrates the full Verity pipeline:
     1. Search Agent: Finds relevant studies from PubMed
     2. Quality Evaluator: Scores and ranks studies
     3. Synthesis Agent: Generates verdict and summary
@@ -92,8 +92,8 @@ async def verify_claim(request: VerifyClaimRequest):
         Verdict, summary, and supporting evidence
     """
     try:
-        # Run the TruthCheck pipeline
-        result = await run_truthcheck(request.claim)
+        # Run the Verity pipeline
+        result = await run_verity(request.claim)
 
         # Check if we got an error
         if result.get("search_error"):
@@ -150,6 +150,6 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "service": "TruthCheck API",
+        "service": "Verity API",
         "version": "1.0.0"
     }

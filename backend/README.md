@@ -1,4 +1,4 @@
-# TruthCheck Backend
+# Verity Backend
 
 Evidence-based health claim verification system using LangGraph and Claude Sonnet 4.5.
 

@@ -2,7 +2,7 @@
 
 import asyncio
 from app.agents.search_agent import SearchAgent
-from app.models.state import TruthCheckState
+from app.models.state import VerityState
 
 
 async def test_search_agent():
@@ -13,7 +13,7 @@ async def test_search_agent():
     agent = SearchAgent()
 
     # Test state
-    state: TruthCheckState = {
+    state: VerityState = {
         "claim": "Does creatine improve muscle strength?"
     }
 

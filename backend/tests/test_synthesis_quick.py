@@ -5,7 +5,7 @@ sys.path.insert(0, '/Users/goda/Desktop/CODE/Turing College/gsmulk-AE.3.5/backen
 
 import asyncio
 from app.agents.synthesis_agent import SynthesisAgent
-from app.models.state import TruthCheckState, Study
+from app.models.state import VerityState, Study
 
 
 async def test_synthesis_quick():
@@ -57,7 +57,7 @@ async def test_synthesis_quick():
     ]
 
     # Create state
-    state: TruthCheckState = {
+    state: VerityState = {
         "claim": "Does creatine improve muscle strength?",
         "top_studies": mock_studies
     }

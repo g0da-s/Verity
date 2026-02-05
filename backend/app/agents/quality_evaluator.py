@@ -14,7 +14,7 @@ from typing import List, Dict
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import settings
-from app.models.state import TruthCheckState, Study
+from app.models.state import VerityState, Study
 
 
 class QualityEvaluator:
@@ -194,7 +194,7 @@ Score this study from 0-10."""
 
         return ranked[:top_n]
 
-    async def run(self, state: TruthCheckState) -> TruthCheckState:
+    async def run(self, state: VerityState) -> VerityState:
         """Execute Quality Evaluator node in LangGraph workflow.
 
         Args:
@@ -247,7 +247,7 @@ Score this study from 0-10."""
 
 
 # Node function for LangGraph
-async def quality_evaluator_node(state: TruthCheckState) -> TruthCheckState:
+async def quality_evaluator_node(state: VerityState) -> VerityState:
     """LangGraph node wrapper for Quality Evaluator.
 
     This function is called by LangGraph during workflow execution.

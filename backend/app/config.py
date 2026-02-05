@@ -12,11 +12,11 @@ class Settings(BaseSettings):
 
     # Optional LangSmith settings
     langsmith_api_key: str | None = None
-    langsmith_project: str = "truthcheck"
+    langsmith_project: str = "verity"
     langsmith_tracing: bool = False
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./data/truthcheck.db"
+    database_url: str = "sqlite+aiosqlite:///./data/verity.db"
 
     # API Configuration
     cors_origins: str = "http://localhost:3000"  # Comma-separated string
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     port: int = 8000
 
     # Application settings
-    app_name: str = "TruthCheck"
+    app_name: str = "Verity"
     debug: bool = False
 
     model_config = SettingsConfigDict(

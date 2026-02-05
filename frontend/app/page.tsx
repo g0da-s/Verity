@@ -45,7 +45,7 @@ export default function Home() {
     setCurrentClaim(claim);
 
     try {
-      const response = await fetch("http://localhost:8000/api/truthcheck/verify", {
+      const response = await fetch("http://localhost:8000/api/verity/verify", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -7,17 +7,17 @@ import asyncio
 from app.agents.search_agent import SearchAgent
 from app.agents.quality_evaluator import QualityEvaluator
 from app.agents.synthesis_agent import SynthesisAgent
-from app.models.state import TruthCheckState
+from app.models.state import VerityState
 
 
 async def test_full_pipeline():
-    """Test complete TruthCheck pipeline with all 3 agents."""
+    """Test complete Verity pipeline with all 3 agents."""
     print("\n" + "="*80)
-    print("🧪 TESTING FULL TRUTHCHECK PIPELINE")
+    print("🧪 TESTING FULL VERITY PIPELINE")
     print("="*80)
 
     # Initial state
-    state: TruthCheckState = {
+    state: VerityState = {
         "claim": "Does creatine improve muscle strength?"
     }
 

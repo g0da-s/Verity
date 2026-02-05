@@ -3,7 +3,7 @@
 import asyncio
 from app.agents.search_agent import SearchAgent
 from app.agents.quality_evaluator import QualityEvaluator
-from app.models.state import TruthCheckState
+from app.models.state import VerityState
 
 
 async def test_quality_evaluator():
@@ -14,7 +14,7 @@ async def test_quality_evaluator():
     # Step 1: Get studies from Search Agent
     print("\n📋 Step 1: Getting studies from Search Agent...")
     search_agent = SearchAgent()
-    state: TruthCheckState = {
+    state: VerityState = {
         "claim": "Does creatine improve muscle strength?"
     }
 

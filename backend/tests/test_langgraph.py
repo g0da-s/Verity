@@ -4,7 +4,7 @@ import sys
 sys.path.insert(0, '/Users/goda/Desktop/CODE/Turing College/gsmulk-AE.3.5/backend')
 
 import asyncio
-from app.graph import run_truthcheck
+from app.graph import run_verity
 
 
 async def test_langgraph():
@@ -18,7 +18,7 @@ async def test_langgraph():
     print("\n" + "="*80 + "\n")
 
     # Run the workflow
-    result = await run_truthcheck(claim)
+    result = await run_verity(claim)
 
     # Display final results
     print("\n" + "="*80)

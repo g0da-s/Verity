@@ -1,5 +1,5 @@
 [project]
-name = "truthcheck-backend"
+name = "verity-backend"
 version = "0.1.0"
 description = "Evidence-based health claim verification system using LangGraph and Claude"
 readme = "README.md"

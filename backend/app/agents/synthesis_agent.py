@@ -6,14 +6,14 @@ This agent:
 3. Generates verdict: Supported/Not Supported/Inconclusive
 4. Creates evidence-based summary with citations
 
-Final step in the TruthCheck pipeline.
+Final step in the Verity pipeline.
 """
 
 from typing import List
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import settings
-from app.models.state import TruthCheckState, Study
+from app.models.state import VerityState, Study
 
 
 class SynthesisAgent:
@@ -201,7 +201,7 @@ Analyze these studies and generate a verdict about the health claim."""
                 "key_findings": []
             }
 
-    async def run(self, state: TruthCheckState) -> TruthCheckState:
+    async def run(self, state: VerityState) -> VerityState:
         """Execute Synthesis Agent node in LangGraph workflow.
 
         Args:
@@ -261,7 +261,7 @@ Analyze these studies and generate a verdict about the health claim."""
 
 
 # Node function for LangGraph
-async def synthesis_node(state: TruthCheckState) -> TruthCheckState:
+async def synthesis_node(state: VerityState) -> VerityState:
     """LangGraph node wrapper for Synthesis Agent.
 
     This function is called by LangGraph during workflow execution.
