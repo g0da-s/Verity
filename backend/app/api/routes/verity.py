@@ -1,9 +1,17 @@
 """Verity API endpoints."""
 
-from fastapi import APIRouter, HTTPException
+import time
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.graph import run_verity
+from app.db.session import get_db
+from app.services.cache import get_cached_result, save_to_cache
+from app.services.claim_validator import validate_claim, ClaimValidationError
+from app.utils.retry import RateLimitExceeded
+from app.utils.rate_limit import rate_limit
 
 
 router = APIRouter(prefix="/api/verity", tags=["verity"])
@@ -45,6 +53,7 @@ class VerifyClaimResponse(BaseModel):
     top_studies: List[Study]
     search_queries: List[str]
     stats: dict
+    cache_hit: bool = False
 
     class Config:
         json_schema_extra = {
@@ -74,26 +83,68 @@ class VerifyClaimResponse(BaseModel):
                     "studies_found": 12,
                     "studies_scored": 12,
                     "top_studies_count": 5
-                }
+                },
+                "cache_hit": False
             }
         }
 
 
-@router.post("/verify", response_model=VerifyClaimResponse)
-async def verify_claim(request: VerifyClaimRequest):
+@router.post("/verify", response_model=VerifyClaimResponse, dependencies=[Depends(rate_limit)])
+async def verify_claim(
+    request: VerifyClaimRequest,
+    db: AsyncSession = Depends(get_db)
+):
     """Verify a health claim using evidence from PubMed.
 
-    This endpoint orchestrates the full Verity pipeline:
+    This endpoint first validates the claim is specific enough, then checks
+    the cache for a recent result. If not found or expired, it orchestrates
+    the full Verity pipeline:
     1. Search Agent: Finds relevant studies from PubMed
     2. Quality Evaluator: Scores and ranks studies
     3. Synthesis Agent: Generates verdict and summary
 
     Returns:
         Verdict, summary, and supporting evidence
+
+    Raises:
+        400: If the claim is too vague (includes suggestions)
     """
     try:
-        # Run the Verity pipeline
+        # Validate claim is specific enough
+        try:
+            await validate_claim(request.claim)
+        except ClaimValidationError as e:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "Claim is too vague",
+                    "message": e.message,
+                    "suggestions": e.suggestions
+                }
+            )
+
+        # Check cache first
+        cached = await get_cached_result(db, request.claim)
+        if cached is not None:
+            # Return cached result
+            top_studies = [
+                Study(**study) for study in cached.studies_json
+            ]
+            return VerifyClaimResponse(
+                claim=cached.original_claim,
+                verdict=cached.verdict,
+                verdict_emoji=cached.verdict_emoji,
+                summary=cached.summary,
+                top_studies=top_studies,
+                search_queries=[],  # Not stored in cache
+                stats=cached.stats,
+                cache_hit=True
+            )
+
+        # Cache miss - run the Verity pipeline
+        start_time = time.time()
         result = await run_verity(request.claim)
+        execution_time = time.time() - start_time
 
         # Check if we got an error
         if result.get("search_error"):
@@ -131,17 +182,40 @@ async def verify_claim(request: VerifyClaimRequest):
                 "studies_found": len(result.get("raw_studies", [])),
                 "studies_scored": len(result.get("scored_studies", [])),
                 "top_studies_count": len(top_studies)
-            }
+            },
+            cache_hit=False
+        )
+
+        # Save to cache
+        await save_to_cache(
+            db=db,
+            claim=request.claim,
+            verdict=response.verdict,
+            verdict_emoji=response.verdict_emoji,
+            summary=response.summary,
+            top_studies=[study.model_dump() for study in top_studies],
+            search_queries=response.search_queries,
+            stats=response.stats,
+            execution_time=execution_time,
         )
 
         return response
 
     except HTTPException:
         raise
+    except RateLimitExceeded:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "message": "Verity is temporarily unavailable due to high demand. Please try again in about a minute.",
+                "retry_after": 60
+            }
+        )
     except Exception as e:
+        print(f"❌ Unhandled error in /verify: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Verification failed: {str(e)}"
+            detail="Something went wrong. Please try again later."
         )
 
 

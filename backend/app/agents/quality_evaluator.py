@@ -9,41 +9,69 @@ This agent:
 Ensures only high-quality evidence is used for final verdict.
 """
 
-import asyncio
+import json
+import re
 from typing import List, Dict
-from langchain_anthropic import ChatAnthropic
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import settings
+from app.utils.retry import invoke_with_retry
 from app.models.state import VerityState, Study
+
+
+def _fallback_score(study: Study) -> Dict:
+    """Heuristic score used when the LLM call fails or returns unparseable output."""
+    score = 5.0
+    study_type = study.get('study_type', '').lower()
+    if 'meta-analysis' in study_type:
+        score = 9.0
+    elif 'systematic review' in study_type:
+        score = 7.5
+    elif 'rct' in study_type or 'randomized' in study_type:
+        score = 6.5
+
+    if study.get('sample_size', 0) > 1000:
+        score += 0.5
+    if study.get('year', 2000) >= 2023:
+        score += 0.5
+
+    return {
+        "quality_score": min(10.0, score),
+        "quality_rationale": f"Fallback score based on {study_type} type"
+    }
 
 
 class QualityEvaluator:
     """Agent responsible for scoring and ranking studies by quality.
 
-    Uses Claude to evaluate each study on multiple criteria and returns
-    only the highest quality evidence for synthesis.
+    Sends all studies in a single LLM call to minimise API round-trips,
+    then falls back to heuristic scoring for any study the LLM missed.
     """
 
     def __init__(self):
-        """Initialize Quality Evaluator with Claude Sonnet 4.5."""
-        self.llm = ChatAnthropic(
-            model="claude-sonnet-4-5-20250929",
-            api_key=settings.anthropic_api_key,
-            temperature=0.1  # Low temperature for consistent scoring
+        """Initialize Quality Evaluator with Groq Llama."""
+        self.llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
+            api_key=settings.groq_api_key,
+            temperature=0.1
         )
 
-    async def score_study(self, study: Study) -> Dict:
-        """Score a single study using Claude.
+    async def score_all_studies(self, studies: List[Study]) -> List[Study]:
+        """Score all studies in a single LLM call.
 
         Args:
-            study: Study dictionary with metadata
+            studies: List of studies to score
 
         Returns:
-            Dict with quality_score (float) and quality_rationale (str)
+            List of studies with quality_score and quality_rationale added
         """
-        system_prompt = """You are a scientific quality assessor. Score this study from 0-10 based on:
+        if not studies:
+            return []
 
-CRITERIA:
+        print(f"\n⚖️  Quality Evaluator: Scoring {len(studies)} studies...")
+
+        system_prompt = """You are a scientific quality assessor. You will be given a numbered list of studies. Score EACH one from 0-10 based on these criteria:
+
 1. Study Type (40% weight):
    - Meta-analysis: 9-10 points
    - Systematic review: 7-8 points
@@ -69,21 +97,29 @@ CRITERIA:
    - 5-10 years: moderate points
    - 10+ years: low points
 
-OUTPUT FORMAT (JSON):
-{
-  "score": 8.5,
-  "rationale": "Brief 1-2 sentence explanation"
-}"""
+OUTPUT: Return a JSON array with one object per study, in the SAME order as the input. Each object must have "score" (number) and "rationale" (1-2 sentences).
 
-        user_prompt = f"""Study Details:
-- Title: {study.get('title', 'N/A')}
-- Authors: {study.get('authors', 'N/A')}
-- Journal: {study.get('journal', 'N/A')}
-- Year: {study.get('year', 'N/A')}
-- Type: {study.get('study_type', 'N/A')}
-- Sample Size: {study.get('sample_size', 0)}
+Example:
+[
+  {"score": 8.5, "rationale": "High-quality meta-analysis with large sample."},
+  {"score": 6.0, "rationale": "Solid RCT but limited sample size."}
+]
 
-Score this study from 0-10."""
+Return ONLY the JSON array, no other text."""
+
+        # Build the numbered study list for the user message
+        study_lines = []
+        for i, study in enumerate(studies, 1):
+            study_lines.append(
+                f"{i}. Title: {study.get('title', 'N/A')}\n"
+                f"   Authors: {study.get('authors', 'N/A')}\n"
+                f"   Journal: {study.get('journal', 'N/A')}\n"
+                f"   Year: {study.get('year', 'N/A')}\n"
+                f"   Type: {study.get('study_type', 'N/A')}\n"
+                f"   Sample Size: {study.get('sample_size', 0)}"
+            )
+
+        user_prompt = "Score each of these studies:\n\n" + "\n\n".join(study_lines)
 
         messages = [
             SystemMessage(content=system_prompt),
@@ -91,89 +127,31 @@ Score this study from 0-10."""
         ]
 
         try:
-            response = await self.llm.ainvoke(messages)
+            response = await invoke_with_retry(self.llm, messages)
+            content = re.sub(r'```(?:json)?\s*|\s*```', '', response.content).strip()
+            scores = json.loads(content)
 
-            # Parse JSON response
-            import json
-            import re
-            content = response.content
+            if not isinstance(scores, list):
+                raise ValueError("Response is not a JSON array")
 
-            # Extract JSON from markdown code blocks if present
-            content = re.sub(r'```(?:json)?\s*|\s*```', '', content).strip()
+            # Map scores back onto studies; fall back per-study if the array is short
+            scored_studies = []
+            for i, study in enumerate(studies):
+                if i < len(scores) and isinstance(scores[i], dict):
+                    scored_studies.append({
+                        **study,
+                        "quality_score": float(scores[i].get("score", 0)),
+                        "quality_rationale": scores[i].get("rationale", "No rationale provided")
+                    })
+                else:
+                    scored_studies.append({**study, **_fallback_score(study)})
 
-            result = json.loads(content)
-
-            return {
-                "quality_score": float(result.get("score", 0)),
-                "quality_rationale": result.get("rationale", "No rationale provided")
-            }
+            print(f"   Scored {len(scored_studies)}/{len(studies)} studies")
+            return scored_studies
 
         except Exception as e:
-            # Fallback scoring if Claude fails
-            print(f"⚠️  Scoring failed for study, using fallback: {e}")
-
-            # Simple fallback scoring
-            score = 5.0  # Default moderate score
-
-            # Study type bonus
-            study_type = study.get('study_type', '').lower()
-            if 'meta-analysis' in study_type:
-                score = 9.0
-            elif 'systematic review' in study_type:
-                score = 7.5
-            elif 'rct' in study_type or 'randomized' in study_type:
-                score = 6.5
-
-            # Sample size bonus
-            sample_size = study.get('sample_size', 0)
-            if sample_size > 1000:
-                score += 0.5
-
-            # Recency bonus
-            year = study.get('year', 2000)
-            if year >= 2023:
-                score += 0.5
-
-            score = min(10.0, score)  # Cap at 10
-
-            return {
-                "quality_score": score,
-                "quality_rationale": f"Fallback score based on {study_type} type"
-            }
-
-    async def score_all_studies(self, studies: List[Study], max_concurrent: int = 5) -> List[Study]:
-        """Score all studies with concurrency limit.
-
-        Args:
-            studies: List of studies to score
-            max_concurrent: Max concurrent API calls (default: 5)
-
-        Returns:
-            List of studies with quality_score and quality_rationale added
-        """
-        if not studies:
-            return []
-
-        print(f"\n⚖️  Quality Evaluator: Scoring {len(studies)} studies...")
-
-        # Process in batches to avoid rate limits
-        scored_studies = []
-
-        for i in range(0, len(studies), max_concurrent):
-            batch = studies[i:i + max_concurrent]
-
-            # Score batch in parallel
-            tasks = [self.score_study(study) for study in batch]
-            scores = await asyncio.gather(*tasks)
-
-            # Add scores to studies
-            for study, score_data in zip(batch, scores):
-                scored_study = {**study, **score_data}
-                scored_studies.append(scored_study)
-
-            print(f"   Scored {min(i + max_concurrent, len(studies))}/{len(studies)} studies...")
-
-        return scored_studies
+            print(f"⚠️  Batch scoring failed, using fallback for all studies: {e}")
+            return [{**study, **_fallback_score(study)} for study in studies]
 
     def rank_studies(self, scored_studies: List[Study], top_n: int = 5) -> List[Study]:
         """Rank studies by quality score and return top N.

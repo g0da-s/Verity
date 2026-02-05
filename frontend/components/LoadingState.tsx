@@ -25,7 +25,7 @@ export default function LoadingState({ claim }: LoadingStateProps) {
     // Progress through stages
     const stageInterval = setInterval(() => {
       setCurrentStage((prev) => Math.min(prev + 1, AGENT_STAGES.length - 1));
-    }, 12000);
+    }, 3000);
 
     return () => {
       clearInterval(dotsInterval);
@@ -68,9 +68,8 @@ export default function LoadingState({ claim }: LoadingStateProps) {
         ))}
       </div>
 
-      {/* Time estimate */}
       <p className="text-sm text-slate-400">
-        This usually takes 30-60 seconds
+        This usually takes 5-10 seconds
       </p>
     </div>
   );

@@ -10,11 +10,12 @@ Designed to find high-quality evidence: meta-analyses, RCTs, systematic reviews.
 
 import asyncio
 from typing import List
-from langchain_anthropic import ChatAnthropic
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import settings
 from app.models.state import VerityState
 from app.tools.pubmed import PubMedTool
+from app.utils.retry import invoke_with_retry
 
 
 class SearchAgent:
@@ -25,11 +26,11 @@ class SearchAgent:
     """
 
     def __init__(self):
-        """Initialize Search Agent with Claude Sonnet 4.5."""
-        self.llm = ChatAnthropic(
-            model="claude-sonnet-4-5-20250929",
-            api_key=settings.anthropic_api_key,
-            temperature=0.3  # Slightly creative for query generation
+        """Initialize Search Agent with Groq Llama."""
+        self.llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
+            api_key=settings.groq_api_key,
+            temperature=0.3
         )
         self.pubmed = PubMedTool()
 
@@ -50,21 +51,32 @@ class SearchAgent:
                 "creatine ergogenic aid systematic review"
             ]
         """
-        system_prompt = """You are a scientific research expert. Generate 2-3 optimized PubMed search queries to find high-quality evidence about a health claim.
+        system_prompt = """You are a PubMed search expert. Generate 2-3 optimized search queries to find high-quality evidence about a health claim.
 
-REQUIREMENTS:
-- Prioritize meta-analyses, systematic reviews, and RCTs
-- Use medical/scientific terminology
-- Include study type keywords (meta-analysis, systematic review, randomized controlled trial, RCT)
-- Keep queries focused and specific
-- Avoid overly broad terms
+PUBMED QUERY RULES:
+1. Keep queries SHORT and focused (3-5 key terms)
+2. Use ONE study type per query (meta-analysis, systematic review, or RCT)
+3. NEVER use OR within a query - it causes unexpected results
+4. Use PubMed field tags for precision:
+   - [Title/Abstract] for key terms
+   - [pt] for publication types (meta-analysis[pt], randomized controlled trial[pt])
+5. Use scientific terminology (e.g., "resistance training" not "working out")
 
-OUTPUT FORMAT (JSON):
+GOOD EXAMPLES:
+- creatine muscle strength meta-analysis[pt]
+- creatine supplementation resistance training randomized controlled trial[pt]
+- vitamin D bone density systematic review[pt]
+
+BAD EXAMPLES (avoid these patterns):
+- creatine meta-analysis OR systematic review (OR causes issues)
+- creatine supplementation muscle strength gains ergogenic effect (too many terms)
+
+OUTPUT FORMAT (JSON only, no explanation):
 {
   "queries": [
-    "query 1 here",
-    "query 2 here",
-    "query 3 here"
+    "query 1",
+    "query 2",
+    "query 3"
   ]
 }"""
 
@@ -78,7 +90,7 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
         ]
 
         try:
-            response = await self.llm.ainvoke(messages)
+            response = await invoke_with_retry(self.llm, messages)
 
             # Parse JSON response
             import json

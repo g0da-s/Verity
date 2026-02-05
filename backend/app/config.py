@@ -7,19 +7,19 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # Required API keys
-    anthropic_api_key: str
+    groq_api_key: str
     pubmed_email: str
 
     # Optional LangSmith settings
     langsmith_api_key: str | None = None
     langsmith_project: str = "verity"
-    langsmith_tracing: bool = False
+    langchain_tracing_v2: bool = False
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./data/verity.db"
 
     # API Configuration
-    cors_origins: str = "http://localhost:3000"  # Comma-separated string
+    cors_origins: str = "http://localhost:3000"
     host: str = "0.0.0.0"
     port: int = 8000
 

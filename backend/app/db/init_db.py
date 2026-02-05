@@ -29,8 +29,6 @@ async def init_db():
     print(f"📁 Database file: {settings.database_url}")
     print("📊 Tables created:")
     print("   - cached_results")
-    print("   - search_logs")
-    print("   - token_usage")
 
 
 if __name__ == "__main__":

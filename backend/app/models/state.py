@@ -7,7 +7,7 @@ The state uses TypedDict for type safety and LangGraph's Annotated types
 for reducer functions (like appending to lists).
 """
 
-from typing import TypedDict, Annotated, List, Dict, Any
+from typing import TypedDict, Annotated, List
 from operator import add
 
 
@@ -25,11 +25,11 @@ class Study(TypedDict, total=False):
     year: int
     study_type: str  # "meta-analysis", "rct", "observational", etc.
     sample_size: int
-    abstract: str  # Study abstract (truncated to 500 chars)
+    abstract: str  # Results and Conclusions sections (or full text if unstructured)
     url: str  # https://pubmed.ncbi.nlm.nih.gov/ID/
 
     # Quality metrics (added by Quality Evaluator Agent)
-    quality_score: float  # 0-20 scale
+    quality_score: float  # 0-10 scale
     quality_rationale: str  # Why this score was assigned
 
 
@@ -68,33 +68,4 @@ class VerityState(TypedDict, total=False):
     # ============================================================
     verdict: str  # "works", "maybe", "doesnt_work"
     verdict_emoji: str  # "✅", "⚠️", "❌"
-    verdict_text: str  # "LEGIT (Strong Evidence)"
-
-    # Evidence breakdown
-    what_science_says: Dict[str, List[str]]  # {
-    #     "works_for": ["Muscle strength (+8-15%)", "Exercise performance"],
-    #     "maybe": ["Brain function (mixed results)"],
-    #     "doesnt_work": ["Weight loss"]
-    # }
-
-    # Practical information
-    practical_info: Dict[str, str]  # {
-    #     "safety": "Generally safe",
-    #     "dose": "3-5g per day",
-    #     "cost": "~€20/month",
-    #     "warnings": "Avoid if kidney disease"
-    # }
-
     summary: str  # Full formatted markdown output for display
-
-    # ============================================================
-    # METADATA (tracking and debugging)
-    # ============================================================
-    num_studies_analyzed: int  # How many studies in top_studies
-    token_usage: Dict[str, Any]  # {
-    #     "search": {"prompt": 1200, "completion": 300},
-    #     "quality": {"prompt": 3500, "completion": 800},
-    #     "synthesis": {"prompt": 2800, "completion": 600}
-    # }
-    execution_time_seconds: float  # Total time for all agents
-    timestamp: str  # ISO format: "2026-01-28T18:45:00Z"

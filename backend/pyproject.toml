@@ -8,30 +8,26 @@ dependencies = [
     # Core framework
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
-
     # LangGraph & LangChain
     "langgraph>=0.2.62",
     "langchain>=0.3.14",
     "langchain-anthropic>=0.3.3",
     "langgraph-checkpoint-sqlite>=2.0.8",
-
     # Database
     "sqlalchemy>=2.0.36",
     "aiosqlite>=0.20.0",
     "alembic>=1.14.0",
-
     # PubMed integration
     "biopython>=1.84",
     "httpx>=0.28.1",
-
     # Observability
     "langsmith>=0.2.7",
-
     # Utilities
     "pydantic>=2.10.6",
     "pydantic-settings>=2.7.1",
     "python-dotenv>=1.0.1",
     "python-multipart>=0.0.20",
+    "langchain-groq>=1.1.2",
 ]
 
 [project.optional-dependencies]

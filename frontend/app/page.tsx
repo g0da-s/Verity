@@ -30,17 +30,24 @@ export type VerificationResult = {
   };
 };
 
-type AppState = "idle" | "loading" | "results" | "error";
+type AppState = "idle" | "loading" | "results" | "error" | "validation_error";
+
+type ValidationError = {
+  message: string;
+  suggestions: string[];
+};
 
 export default function Home() {
   const [state, setState] = useState<AppState>("idle");
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<ValidationError | null>(null);
   const [currentClaim, setCurrentClaim] = useState<string>("");
 
   const handleSubmit = async (claim: string) => {
     setState("loading");
     setError(null);
+    setValidationError(null);
     setResult(null);
     setCurrentClaim(claim);
 
@@ -54,7 +61,19 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+
+        // Handle validation error (400) with suggestions
+        if (response.status === 400 && errorData.detail?.suggestions) {
+          setValidationError({
+            message: errorData.detail.message,
+            suggestions: errorData.detail.suggestions,
+          });
+          setState("validation_error");
+          return;
+        }
+
+        throw new Error(errorData.detail?.message || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
@@ -70,7 +89,12 @@ export default function Home() {
     setState("idle");
     setResult(null);
     setError(null);
+    setValidationError(null);
     setCurrentClaim("");
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    handleSubmit(suggestion);
   };
 
   return (
@@ -95,6 +119,45 @@ export default function Home() {
       {state === "loading" && (
         <div className="min-h-screen flex flex-col items-center justify-center px-4 animate-fadeIn">
           <LoadingState claim={currentClaim} />
+        </div>
+      )}
+
+      {/* Validation Error State - Claim too vague */}
+      {state === "validation_error" && validationError && (
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 animate-fadeIn">
+          <div className="max-w-lg w-full text-center">
+            <div className="text-5xl mb-6">🔍</div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-3">
+              Be more specific
+            </h2>
+            <p className="text-slate-600 mb-8">
+              {validationError.message}
+            </p>
+
+            {validationError.suggestions.length > 0 && (
+              <div className="mb-8">
+                <p className="text-sm text-slate-500 mb-4">Try one of these:</p>
+                <div className="flex flex-col gap-3">
+                  {validationError.suggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="px-6 py-3 bg-white text-slate-700 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-left shadow-sm hover:shadow-md"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleReset}
+              className="text-slate-500 hover:text-blue-600 transition-colors font-medium"
+            >
+              ← Start over
+            </button>
+          </div>
         </div>
       )}
 
@@ -140,7 +203,7 @@ export default function Home() {
       {/* Subtle Footer - Only on idle */}
       {state === "idle" && (
         <footer className="fixed bottom-0 left-0 right-0 py-4 text-center text-slate-400 text-xs tracking-wide">
-          Powered by PubMed & Claude AI
+          Powered by PubMed & Groq AI
         </footer>
       )}
     </main>

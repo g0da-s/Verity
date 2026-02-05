@@ -178,7 +178,7 @@ class PubMedTool:
                 year=year,
                 study_type=study_type,
                 sample_size=sample_size,
-                abstract=abstract[:500],  # Truncate to 500 chars
+                abstract=abstract,
                 url=url
             )
 
@@ -231,34 +231,51 @@ class PubMedTool:
         return datetime.now().year
 
     def _format_abstract(self, abstract_sections: List) -> str:
-        """Format abstract sections into a single string.
+        """Extract Results and Conclusions from a structured abstract.
+
+        For structured abstracts (with labeled sections), only Results and
+        Conclusions are kept — these contain the findings the synthesis agent
+        needs. Background, Objectives, and Methods are redundant: the LLM
+        already knows the claim context, and study_type/sample_size are stored
+        as separate fields.
+
+        For unstructured abstracts (plain text, no labels), the full text is
+        returned as a fallback.
 
         Args:
-            abstract_sections: List of abstract text sections
+            abstract_sections: List of abstract text sections from PubMed
 
         Returns:
-            Combined abstract text
+            Extracted abstract text
         """
         if not abstract_sections:
             return "No abstract available"
 
-        # If sections are strings, join them
-        if isinstance(abstract_sections, list):
-            text_parts = []
+        if not isinstance(abstract_sections, list):
+            return str(abstract_sections)
+
+        # Check if any sections have labels (structured abstract)
+        has_labels = any(
+            hasattr(section, "attributes") and "Label" in section.attributes
+            for section in abstract_sections
+        )
+
+        if has_labels:
+            # Structured: extract only Results and Conclusions
+            target_labels = {"RESULTS", "CONCLUSIONS", "CONCLUSION", "FINDINGS"}
+            parts = []
             for section in abstract_sections:
-                if isinstance(section, str):
-                    text_parts.append(section)
-                elif hasattr(section, "attributes") and "Label" in section.attributes:
-                    # Section with label (e.g., "BACKGROUND:", "METHODS:")
+                if hasattr(section, "attributes") and "Label" in section.attributes:
                     label = section.attributes["Label"]
-                    text = str(section)
-                    text_parts.append(f"{label}: {text}")
-                else:
-                    text_parts.append(str(section))
+                    if label.upper() in target_labels:
+                        parts.append(f"{label}: {str(section)}")
+            # If somehow no target sections matched, fall back to full abstract
+            if not parts:
+                return " ".join(str(s) for s in abstract_sections)
+            return " ".join(parts)
 
-            return " ".join(text_parts)
-
-        return str(abstract_sections)
+        # Unstructured: return full text
+        return " ".join(str(section) for section in abstract_sections)
 
     def _identify_study_type(self, title: str, abstract: str) -> str:
         """Identify study type from title and abstract.

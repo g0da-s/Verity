@@ -15,11 +15,14 @@ type ClaimFormProps = {
 
 export default function ClaimForm({ onSubmit, isLoading }: ClaimFormProps) {
   const [claim, setClaim] = useState("");
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (claim.trim().length >= 10) {
       onSubmit(claim.trim());
+    } else {
+      setSubmitAttempted(true);
     }
   };
 
@@ -36,19 +39,19 @@ export default function ClaimForm({ onSubmit, isLoading }: ClaimFormProps) {
           <input
             type="text"
             value={claim}
-            onChange={(e) => setClaim(e.target.value)}
+            onChange={(e) => { setClaim(e.target.value); setSubmitAttempted(false); }}
             placeholder="Enter a health claim to verify..."
             className="w-full px-6 py-5 text-lg text-slate-800 bg-white border-2 border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
             disabled={isLoading}
-            minLength={10}
             maxLength={500}
           />
 
           {/* Search Button */}
           <button
             type="submit"
-            disabled={isLoading || claim.trim().length < 10}
-            className="absolute right-3 top-1/2 -translate-y-1/2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-200 disabled:shadow-none"
+            disabled={isLoading}
+            onClick={() => { if (claim.trim().length < 10) setSubmitAttempted(true); }}
+            className={`absolute right-3 top-1/2 -translate-y-1/2 px-6 py-3 text-white font-semibold rounded-xl transition-all shadow-lg ${isLoading || claim.trim().length < 10 ? "bg-slate-300 cursor-not-allowed shadow-none" : "bg-blue-600 hover:bg-blue-700 shadow-blue-200"}`}
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -64,9 +67,9 @@ export default function ClaimForm({ onSubmit, isLoading }: ClaimFormProps) {
         </div>
 
         {/* Character Count */}
-        <p className="text-sm text-slate-400 mt-3 text-center">
+        <p className={`text-sm mt-3 text-center ${claim.length > 0 && claim.trim().length < 10 && submitAttempted ? "text-red-500" : "text-slate-400"}`}>
           {claim.length > 0 && `${claim.length}/500`}
-          {claim.length > 0 && claim.length < 10 && " (minimum 10 characters)"}
+          {claim.length > 0 && claim.trim().length < 10 && " (minimum 10 characters)"}
         </p>
       </form>
 

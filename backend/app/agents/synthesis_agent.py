@@ -10,10 +10,11 @@ Final step in the Verity pipeline.
 """
 
 from typing import List
-from langchain_anthropic import ChatAnthropic
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import settings
 from app.models.state import VerityState, Study
+from app.utils.retry import invoke_with_retry
 
 
 class SynthesisAgent:
@@ -24,11 +25,11 @@ class SynthesisAgent:
     """
 
     def __init__(self):
-        """Initialize Synthesis Agent with Claude Sonnet 4.5."""
-        self.llm = ChatAnthropic(
-            model="claude-sonnet-4-5-20250929",
-            api_key=settings.anthropic_api_key,
-            temperature=0.2  # Low temp for factual synthesis
+        """Initialize Synthesis Agent with Groq Llama."""
+        self.llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
+            api_key=settings.groq_api_key,
+            temperature=0.2
         )
 
     def prepare_studies_context(self, studies: List[Study]) -> str:
@@ -51,7 +52,7 @@ Study {i} [Quality: {score:.1f}/10]:
 - Journal: {study.get('journal', 'N/A')} ({study.get('year', 'N/A')})
 - Study Type: {study.get('study_type', 'N/A')}
 - Sample Size: n={study.get('sample_size', 0)}
-- Abstract: {study.get('abstract', 'N/A')[:500]}...
+- Abstract: {study.get('abstract', 'N/A')}
 - URL: {study.get('url', 'N/A')}
 """
             context_parts.append(context.strip())
@@ -70,93 +71,52 @@ Study {i} [Quality: {score:.1f}/10]:
         """
         studies_context = self.prepare_studies_context(studies)
 
-        system_prompt = """You are a health science communicator who explains research to everyday people. Analyze the provided studies and generate a clear, engaging verdict about a health claim.
+        system_prompt = """You are a health science communicator who explains research to everyday people. Analyze the provided studies and generate a comprehensive, easy-to-read verdict about a health claim.
 
-VERDICT OPTIONS:
-1. "Strongly Supported" - Multiple high-quality studies (meta-analyses/RCTs) show consistent positive evidence
-2. "Supported" - Good quality studies show positive evidence with some consistency
-3. "Partially Supported" - Mixed evidence, or limited scope of support
-4. "Inconclusive" - Insufficient evidence, conflicting results, or low-quality studies
-5. "Not Supported" - Quality studies show no benefit or refute the claim
-6. "Contradicted" - Strong evidence actively contradicts the claim
+STEP 1 - RELEVANCE CHECK:
+Before analyzing, check if each study is actually relevant to the claim. Ignore irrelevant studies completely. If NO studies are relevant, verdict is "Inconclusive".
 
-EMOJI MAPPING:
-- Strongly Supported: ✅
-- Supported: ✓
-- Partially Supported: ⚖️
-- Inconclusive: ❓
-- Not Supported: ❌
-- Contradicted: 🚫
+STEP 2 - DETERMINE VERDICT:
+- "Strongly Supported" ✅ - Multiple meta-analyses/RCTs show consistent positive evidence
+- "Supported" ✓ - Good quality studies show positive evidence
+- "Partially Supported" ⚖️ - Mixed evidence or limited scope
+- "Inconclusive" ❓ - Insufficient evidence or conflicting results
+- "Not Supported" ❌ - Quality studies show no benefit
+- "Contradicted" 🚫 - Strong evidence contradicts the claim
 
-WRITING STYLE - CRITICAL RULES:
-1. Write like you're explaining to a smart friend, NOT writing an academic paper
-2. Use simple, everyday language - avoid jargon like "corroborated", "demonstrated", "comprehensive meta-analysis"
-3. Instead say things like: "Studies found that...", "Research shows...", "Scientists tested..."
-4. Be conversational and engaging - use "you" when relevant
-5. Break complex ideas into simple sentences
-6. Use concrete examples and numbers people can understand
-7. No passive voice - say "Researchers found" not "It was found"
-8. Cite studies naturally: "A 2024 study by Wang found..." not "[Wang, 2024]"
+STEP 3 - WRITE EACH SECTION:
 
-SUMMARY STRUCTURE - Use this exact format:
+bottom_line: One clear, direct sentence. Does it work or not? Be honest about uncertainty.
 
-**Bottom Line:**
-One clear sentence - does it work or not?
+what_research_found: 3-4 bullet points. Each one starts with "•". Include specific numbers (sample sizes, effect sizes, percentages). Cite naturally: "A 2023 meta-analysis of 7,582 people found..." State whether findings were consistent or conflicting.
 
-**What Research Found:**
-• Key finding 1 with numbers/specifics
-• Key finding 2 with numbers/specifics  
-• Key finding 3 with numbers/specifics
+who_benefits_most: 2-3 bullet points starting with "•". Which populations showed the strongest effects? Who might NOT benefit?
 
-**Important Details:**
-• Dosage/timing if relevant
-• Who benefits most
-• Important caveats or warnings
+dosage_and_timing: 2-3 bullet points starting with "•". What doses were studied? When to take it? How long until effects? If not applicable to this claim, set this to null.
 
-Keep it SHORT - use bullet points, max 120 words total.
+important_caveats: 2-3 bullet points starting with "•". Key limitations of the research. Safety concerns or interactions. When to see a doctor.
 
-IMPORTANT - RELEVANCE FILTERING:
-- FIRST, check if each study is actually relevant to the claim
-- Ignore completely irrelevant studies (e.g., wearable trackers for a creatine question)
-- Only analyze studies that directly address the claim
-- If NO studies are relevant, mark as "Inconclusive - insufficient relevant evidence"
-- If only 1-2 studies are relevant out of 5, only discuss those relevant ones
-- Make it interesting and easy to understand!
-IMPORTANT - RELEVANCE FILTERING:
-- FIRST, check if each study is actually relevant to the claim
-- Ignore completely irrelevant studies (e.g., wearable trackers for a creatine question)
-- Only analyze studies that directly address the claim
-- If NO studies are relevant, mark as "Inconclusive - insufficient relevant evidence"
-- If only 1-2 studies are relevant out of 5, only discuss those relevant ones
-- Make it interesting and easy to understand!
-IMPORTANT - RELEVANCE FILTERING:
-- FIRST, check if each study is actually relevant to the claim
-- Ignore completely irrelevant studies (e.g., wearable trackers for a creatine question)
-- Only analyze studies that directly address the claim
-- If NO studies are relevant, mark as "Inconclusive - insufficient relevant evidence"
-- If only 1-2 studies are relevant out of 5, only discuss those relevant ones
-- Make it interesting and easy to understand!
-IMPORTANT - RELEVANCE FILTERING:
-- FIRST, check if each study is actually relevant to the claim
-- Ignore completely irrelevant studies (e.g., wearable trackers for a creatine question)
-- Only analyze studies that directly address the claim
-- If NO studies are relevant, mark as "Inconclusive - insufficient relevant evidence"
-- If only 1-2 studies are relevant out of 5, only discuss those relevant ones
-- Make it interesting and easy to understand!
-IMPORTANT - RELEVANCE FILTERING:
-- FIRST, check if each study is actually relevant to the claim
-- Ignore completely irrelevant studies (e.g., wearable trackers for a creatine question)
-- Only analyze studies that directly address the claim
-- If NO studies are relevant, mark as "Inconclusive - insufficient relevant evidence"
-- If only 1-2 studies are relevant out of 5, only discuss those relevant ones
-- Make it interesting and easy to understand!
+GROUNDING RULES (critical — this is a health tool):
+1. ONLY state facts that appear in the provided study abstracts. Do NOT invent dosages, effect sizes, percentages, or study details.
+2. If a piece of information is not mentioned in the studies (e.g. dosage, long-term effects, a specific population), say "not reported in these studies" — do not guess.
+3. Set dosage_and_timing to null if no study mentions dosage or timing.
 
-OUTPUT FORMAT (JSON):
+WRITING RULES:
+1. Write like explaining to a smart friend - NO academic jargon
+2. Use "you" and "your" to make it personal
+3. Include specific numbers only when they appear in the provided abstracts
+4. Be honest about limitations - don't oversell
+5. Keep sentences short and punchy
+
+OUTPUT FORMAT (JSON only, no explanation):
 {
-  "verdict": "verdict category here",
-  "verdict_emoji": "emoji here",
-  "summary": "Clear, simple summary here...",
-  "key_findings": ["simple finding 1", "simple finding 2", "simple finding 3"]
+  "verdict": "verdict category",
+  "verdict_emoji": "emoji",
+  "bottom_line": "one sentence",
+  "what_research_found": "• finding 1\n• finding 2\n• finding 3",
+  "who_benefits_most": "• point 1\n• point 2",
+  "dosage_and_timing": "• point 1\n• point 2" or null,
+  "important_caveats": "• point 1\n• point 2"
 }"""
 
         user_prompt = f"""Health Claim: "{claim}"
@@ -172,7 +132,7 @@ Analyze these studies and generate a verdict about the health claim."""
         ]
 
         try:
-            response = await self.llm.ainvoke(messages)
+            response = await invoke_with_retry(self.llm, messages)
 
             # Parse JSON response
             import json
@@ -182,13 +142,25 @@ Analyze these studies and generate a verdict about the health claim."""
             # Extract JSON from markdown code blocks
             content = re.sub(r'```(?:json)?\s*|\s*```', '', content).strip()
 
-            result = json.loads(content)
+            # strict=False allows literal control chars (newlines, tabs)
+            # inside strings — LLMs emit these regularly in bullet-point fields
+            result = json.loads(content, strict=False)
+
+            # Assemble structured fields into a markdown summary
+            sections = []
+            sections.append(f"## Bottom Line\n{result.get('bottom_line', 'No summary available.')}")
+            sections.append(f"## What Research Found\n{result.get('what_research_found', '')}")
+            sections.append(f"## Who Benefits Most\n{result.get('who_benefits_most', '')}")
+            if result.get("dosage_and_timing"):
+                sections.append(f"## Dosage & Timing\n{result['dosage_and_timing']}")
+            sections.append(f"## Important Caveats\n{result.get('important_caveats', '')}")
+
+            summary = "\n\n".join(sections)
 
             return {
                 "verdict": result.get("verdict", "Inconclusive"),
                 "verdict_emoji": result.get("verdict_emoji", "❓"),
-                "summary": result.get("summary", "Unable to generate summary."),
-                "key_findings": result.get("key_findings", [])
+                "summary": summary,
             }
 
         except Exception as e:
@@ -197,8 +169,7 @@ Analyze these studies and generate a verdict about the health claim."""
             return {
                 "verdict": "Inconclusive",
                 "verdict_emoji": "❓",
-                "summary": f"Unable to synthesize evidence due to error: {str(e)}",
-                "key_findings": []
+                "summary": "Unable to synthesize evidence. Please try again later."
             }
 
     async def run(self, state: VerityState) -> VerityState:
@@ -234,12 +205,6 @@ Analyze these studies and generate a verdict about the health claim."""
             print(f"{'='*80}")
             print(f"\n{result['summary']}")
 
-            if result.get('key_findings'):
-                print(f"\n{'='*80}")
-                print("🔑 Key Findings:")
-                for i, finding in enumerate(result['key_findings'], 1):
-                    print(f"   {i}. {finding}")
-
             print(f"\n{'='*80}")
 
             # Return updated state
@@ -256,7 +221,7 @@ Analyze these studies and generate a verdict about the health claim."""
                 **state,
                 "verdict": "Inconclusive",
                 "verdict_emoji": "❓",
-                "summary": f"Unable to synthesize evidence: {str(e)}"
+                "summary": "Unable to synthesize evidence. Please try again later."
             }
 
 
