@@ -2,127 +2,74 @@
 
 import { useEffect, useState } from "react";
 
-const SCIENCE_FACTS = [
-  "Meta-analyses combine data from multiple studies to identify patterns",
-  "PubMed contains over 36 million scientific articles",
-  "Quality scores consider sample size, study design, and recency",
-  "Systematic reviews are considered the gold standard of evidence",
-  "Randomized controlled trials (RCTs) minimize bias in research",
-  "Claude analyzes study methodology to assess reliability",
-];
-
 const AGENT_STAGES = [
-  { emoji: "🔍", name: "Search Agent", action: "Finding relevant studies..." },
-  { emoji: "⚖️", name: "Quality Evaluator", action: "Scoring evidence..." },
-  { emoji: "✍️", name: "Synthesis Agent", action: "Generating verdict..." },
+  { emoji: "🔍", name: "Searching", description: "Finding relevant studies on PubMed" },
+  { emoji: "⚖️", name: "Evaluating", description: "Scoring study quality and relevance" },
+  { emoji: "✍️", name: "Synthesizing", description: "Generating evidence-based verdict" },
 ];
 
-export default function LoadingState() {
-  const [currentFact, setCurrentFact] = useState(0);
+type LoadingStateProps = {
+  claim: string;
+};
+
+export default function LoadingState({ claim }: LoadingStateProps) {
   const [currentStage, setCurrentStage] = useState(0);
-  const [progress, setProgress] = useState(0);
+  const [dots, setDots] = useState("");
 
   useEffect(() => {
-    // Rotate facts every 4 seconds
-    const factInterval = setInterval(() => {
-      setCurrentFact((prev) => (prev + 1) % SCIENCE_FACTS.length);
-    }, 4000);
-
-    // Progress through stages (simulated)
-    const stageInterval = setInterval(() => {
-      setCurrentStage((prev) => Math.min(prev + 1, AGENT_STAGES.length - 1));
-    }, 10000); // 10s per stage
-
-    // Smooth progress bar
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 1, 95)); // Stop at 95% until real completion
+    // Animate dots
+    const dotsInterval = setInterval(() => {
+      setDots((prev) => (prev.length >= 3 ? "" : prev + "."));
     }, 500);
 
+    // Progress through stages
+    const stageInterval = setInterval(() => {
+      setCurrentStage((prev) => Math.min(prev + 1, AGENT_STAGES.length - 1));
+    }, 12000);
+
     return () => {
-      clearInterval(factInterval);
+      clearInterval(dotsInterval);
       clearInterval(stageInterval);
-      clearInterval(progressInterval);
     };
   }, []);
 
   return (
-    <div className="mt-8 bg-white rounded-2xl shadow-lg p-8 border border-emerald-100">
-      {/* Title */}
-      <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">
-        Analyzing Evidence...
-      </h3>
+    <div className="w-full max-w-lg text-center">
+      {/* Claim being analyzed */}
+      <div className="mb-10">
+        <p className="text-slate-500 text-sm mb-2">Analyzing</p>
+        <p className="text-xl font-medium text-slate-700">&quot;{claim}&quot;</p>
+      </div>
 
-      {/* Agent Journey - Visual Progress */}
-      <div className="flex items-center justify-between mb-8 px-4">
-        {AGENT_STAGES.map((agent, index) => (
-          <div key={agent.name} className="flex flex-col items-center flex-1">
-            {/* Agent Icon */}
-            <div
-              className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl transition-all duration-500 ${
-                index <= currentStage
-                  ? "bg-gradient-to-br from-emerald-500 to-teal-500 scale-110"
-                  : "bg-gray-100"
-              }`}
-            >
-              <span
-                className={`${
-                  index <= currentStage ? "animate-bounce" : "opacity-30"
-                }`}
-              >
-                {agent.emoji}
-              </span>
-            </div>
+      {/* Current Stage - Large */}
+      <div className="mb-10">
+        <div className="text-7xl mb-4 animate-pulse-slow">
+          {AGENT_STAGES[currentStage].emoji}
+        </div>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">
+          {AGENT_STAGES[currentStage].name}{dots}
+        </h2>
+        <p className="text-slate-500">
+          {AGENT_STAGES[currentStage].description}
+        </p>
+      </div>
 
-            {/* Agent Name */}
-            <p
-              className={`mt-2 text-sm font-medium ${
-                index <= currentStage ? "text-emerald-600" : "text-gray-400"
-              }`}
-            >
-              {agent.name}
-            </p>
-
-            {/* Connection Line */}
-            {index < AGENT_STAGES.length - 1 && (
-              <div className="absolute w-1/4 h-0.5 bg-gray-200 top-8 left-1/3 transform -translate-y-1/2 -z-10">
-                <div
-                  className={`h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500 ${
-                    index < currentStage ? "w-full" : "w-0"
-                  }`}
-                />
-              </div>
-            )}
-          </div>
+      {/* Progress Dots */}
+      <div className="flex justify-center gap-3 mb-8">
+        {AGENT_STAGES.map((_, index) => (
+          <div
+            key={index}
+            className={`w-3 h-3 rounded-full transition-all duration-500 ${
+              index <= currentStage
+                ? "bg-blue-500 scale-110"
+                : "bg-slate-200"
+            }`}
+          />
         ))}
       </div>
 
-      {/* Current Action */}
-      <div className="text-center mb-6">
-        <p className="text-lg text-gray-700 font-medium">
-          {AGENT_STAGES[currentStage].action}
-        </p>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="w-full bg-gray-200 rounded-full h-2 mb-6 overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-
-      {/* Educational Fact */}
-      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
-        <p className="text-sm text-emerald-800 flex items-start">
-          <span className="mr-2 text-lg">💡</span>
-          <span className="flex-1">
-            <strong>Did you know?</strong> {SCIENCE_FACTS[currentFact]}
-          </span>
-        </p>
-      </div>
-
-      {/* Estimated Time */}
-      <p className="text-center text-sm text-gray-500 mt-6">
+      {/* Time estimate */}
+      <p className="text-sm text-slate-400">
         This usually takes 30-60 seconds
       </p>
     </div>

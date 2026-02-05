@@ -30,15 +30,19 @@ export type VerificationResult = {
   };
 };
 
+type AppState = "idle" | "loading" | "results" | "error";
+
 export default function Home() {
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState<AppState>("idle");
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentClaim, setCurrentClaim] = useState<string>("");
 
   const handleSubmit = async (claim: string) => {
-    setLoading(true);
+    setState("loading");
     setError(null);
     setResult(null);
+    setCurrentClaim(claim);
 
     try {
       const response = await fetch("http://localhost:8000/api/truthcheck/verify", {
@@ -55,51 +59,90 @@ export default function Home() {
 
       const data = await response.json();
       setResult(data);
+      setState("results");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to verify claim");
-    } finally {
-      setLoading(false);
+      setState("error");
     }
   };
 
+  const handleReset = () => {
+    setState("idle");
+    setResult(null);
+    setError(null);
+    setCurrentClaim("");
+  };
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-emerald-100 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-            🔬 TruthCheck
-          </h1>
-          <p className="text-gray-600 mt-1">Science-Backed Health Answers</p>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        {/* Claim Input Form */}
-        <ClaimForm onSubmit={handleSubmit} isLoading={loading} />
-
-        {/* Loading State */}
-        {loading && <LoadingState />}
-
-        {/* Error State */}
-        {error && (
-          <div className="mt-8 p-6 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-red-800 font-medium">❌ Error: {error}</p>
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Idle State - Centered Search */}
+      {state === "idle" && (
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 animate-fadeIn">
+          <div className="text-center mb-12">
+            <h1 className="text-6xl font-light tracking-tight text-slate-800 mb-3">
+              verity
+            </h1>
+            <div className="w-12 h-1 bg-blue-500 mx-auto mb-4 rounded-full"></div>
+            <p className="text-lg text-slate-500 font-light tracking-wide">
+              health claims, verified by science
+            </p>
           </div>
-        )}
-
-        {/* Results */}
-        {result && !loading && <ResultsDisplay result={result} />}
-      </div>
-
-      {/* Footer */}
-      <footer className="mt-20 py-8 border-t border-emerald-100 bg-white/50">
-        <div className="max-w-6xl mx-auto px-4 text-center text-gray-600 text-sm">
-          <p>Powered by PubMed, Claude Sonnet 4.5, and LangGraph</p>
-          <p className="mt-2">Evidence-based health claim verification</p>
+          <ClaimForm onSubmit={handleSubmit} isLoading={false} />
         </div>
-      </footer>
+      )}
+
+      {/* Loading State - Replaces Form */}
+      {state === "loading" && (
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 animate-fadeIn">
+          <LoadingState claim={currentClaim} />
+        </div>
+      )}
+
+      {/* Error State */}
+      {state === "error" && (
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 animate-fadeIn">
+          <div className="max-w-md w-full text-center">
+            <div className="text-6xl mb-6">😕</div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-4">
+              Something went wrong
+            </h2>
+            <p className="text-slate-600 mb-8">{error}</p>
+            <button
+              onClick={handleReset}
+              className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Results State - Replaces Form */}
+      {state === "results" && result && (
+        <div className="min-h-screen py-8 px-4 animate-fadeIn">
+          <div className="max-w-4xl mx-auto">
+            {/* Back Button */}
+            <button
+              onClick={handleReset}
+              className="mb-6 flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              New Search
+            </button>
+
+            <ResultsDisplay result={result} />
+          </div>
+        </div>
+      )}
+
+      {/* Subtle Footer - Only on idle */}
+      {state === "idle" && (
+        <footer className="fixed bottom-0 left-0 right-0 py-4 text-center text-slate-400 text-xs tracking-wide">
+          Powered by PubMed & Claude AI
+        </footer>
+      )}
     </main>
   );
 }

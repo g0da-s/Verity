@@ -6,8 +6,6 @@ const EXAMPLE_CLAIMS = [
   "Does creatine improve muscle strength?",
   "Does vitamin C prevent colds?",
   "Is intermittent fasting effective for weight loss?",
-  "Does melatonin improve sleep quality?",
-  "Does omega-3 reduce inflammation?",
 ];
 
 type ClaimFormProps = {
@@ -31,52 +29,57 @@ export default function ClaimForm({ onSubmit, isLoading }: ClaimFormProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-8 border border-emerald-100">
-      <h2 className="text-2xl font-bold text-gray-800 mb-2">
-        Verify a Health Claim
-      </h2>
-      <p className="text-gray-600 mb-6">
-        Enter a health-related claim and we'll analyze scientific evidence from PubMed
-      </p>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <textarea
+    <div className="w-full max-w-2xl">
+      <form onSubmit={handleSubmit} className="relative">
+        {/* Main Input */}
+        <div className="relative">
+          <input
+            type="text"
             value={claim}
             onChange={(e) => setClaim(e.target.value)}
-            placeholder="e.g., Does creatine improve muscle strength?"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none resize-none"
-            rows={3}
+            placeholder="Enter a health claim to verify..."
+            className="w-full px-6 py-5 text-lg text-slate-800 bg-white border-2 border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400"
             disabled={isLoading}
             minLength={10}
             maxLength={500}
           />
-          <p className="text-sm text-gray-500 mt-1">
-            {claim.length}/500 characters (minimum 10)
-          </p>
+
+          {/* Search Button */}
+          <button
+            type="submit"
+            disabled={isLoading || claim.trim().length < 10}
+            className="absolute right-3 top-1/2 -translate-y-1/2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-200 disabled:shadow-none"
+          >
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </span>
+            ) : (
+              "Verify"
+            )}
+          </button>
         </div>
 
-        <button
-          type="submit"
-          disabled={isLoading || claim.trim().length < 10}
-          className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-        >
-          {isLoading ? "Analyzing..." : "Verify Claim"}
-        </button>
+        {/* Character Count */}
+        <p className="text-sm text-slate-400 mt-3 text-center">
+          {claim.length > 0 && `${claim.length}/500`}
+          {claim.length > 0 && claim.length < 10 && " (minimum 10 characters)"}
+        </p>
       </form>
 
       {/* Example Claims */}
-      <div className="mt-8">
-        <p className="text-sm font-medium text-gray-700 mb-3">
-          Try an example:
-        </p>
-        <div className="flex flex-wrap gap-2">
+      <div className="mt-8 text-center">
+        <p className="text-sm text-slate-500 mb-4">Try an example:</p>
+        <div className="flex flex-wrap justify-center gap-3">
           {EXAMPLE_CLAIMS.map((example) => (
             <button
               key={example}
               onClick={() => handleExampleClick(example)}
               disabled={isLoading}
-              className="text-sm px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-emerald-200"
+              className="text-sm px-4 py-2 bg-white text-slate-600 rounded-full hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-slate-200 shadow-sm"
             >
               {example}
             </button>
