@@ -27,15 +27,24 @@ class CachedResult(Base):
     studies_json = Column(JSON, nullable=False)  # List of top studies used
 
     # Metadata
-    stats = Column(JSON, nullable=False)  # {"studies_found": N, "studies_scored": N, "top_studies_count": N}
+    stats = Column(
+        JSON, nullable=False
+    )  # {"studies_found": N, "studies_scored": N, "top_studies_count": N}
     execution_time = Column(Float, nullable=False)  # Seconds
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    last_accessed = Column(
-        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
-    last_updated = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    last_accessed = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    last_updated = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
     cache_expires_at = Column(DateTime, nullable=False)  # Cache TTL
 
     # Version tracking
@@ -53,7 +62,11 @@ class CachedResult(Base):
     def is_expired(self) -> bool:
         """Check if this cache entry has expired."""
         # SQLite strips timezone info on read — re-attach UTC before comparing
-        expires_at = self.cache_expires_at.replace(tzinfo=timezone.utc) if self.cache_expires_at.tzinfo is None else self.cache_expires_at
+        expires_at = (
+            self.cache_expires_at.replace(tzinfo=timezone.utc)
+            if self.cache_expires_at.tzinfo is None
+            else self.cache_expires_at
+        )
         return datetime.now(timezone.utc) > expires_at
 
     def update_with_fresh_data(
@@ -64,7 +77,7 @@ class CachedResult(Base):
         studies_json: dict,
         stats: dict,
         execution_time: float,
-        ttl_days: int = 30
+        ttl_days: int = 30,
     ):
         """Update expired cache entry with fresh analysis data.
 
@@ -81,5 +94,3 @@ class CachedResult(Base):
         self.last_updated = datetime.now(timezone.utc)
         self.cache_expires_at = datetime.now(timezone.utc) + timedelta(days=ttl_days)
         self.version += 1
-
-

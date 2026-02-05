@@ -22,22 +22,22 @@ from app.models.state import VerityState, Study
 def _fallback_score(study: Study) -> Dict:
     """Heuristic score used when the LLM call fails or returns unparseable output."""
     score = 5.0
-    study_type = study.get('study_type', '').lower()
-    if 'meta-analysis' in study_type:
+    study_type = study.get("study_type", "").lower()
+    if "meta-analysis" in study_type:
         score = 9.0
-    elif 'systematic review' in study_type:
+    elif "systematic review" in study_type:
         score = 7.5
-    elif 'rct' in study_type or 'randomized' in study_type:
+    elif "rct" in study_type or "randomized" in study_type:
         score = 6.5
 
-    if study.get('sample_size', 0) > 1000:
+    if study.get("sample_size", 0) > 1000:
         score += 0.5
-    if study.get('year', 2000) >= 2023:
+    if study.get("year", 2000) >= 2023:
         score += 0.5
 
     return {
         "quality_score": min(10.0, score),
-        "quality_rationale": f"Fallback score based on {study_type} type"
+        "quality_rationale": f"Fallback score based on {study_type} type",
     }
 
 
@@ -53,7 +53,7 @@ class QualityEvaluator:
         self.llm = ChatGroq(
             model="llama-3.3-70b-versatile",
             api_key=settings.groq_api_key,
-            temperature=0.1
+            temperature=0.1,
         )
 
     async def score_all_studies(self, studies: List[Study]) -> List[Study]:
@@ -123,12 +123,12 @@ Return ONLY the JSON array, no other text."""
 
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt)
+            HumanMessage(content=user_prompt),
         ]
 
         try:
             response = await invoke_with_retry(self.llm, messages)
-            content = re.sub(r'```(?:json)?\s*|\s*```', '', response.content).strip()
+            content = re.sub(r"```(?:json)?\s*|\s*```", "", response.content).strip()
             scores = json.loads(content)
 
             if not isinstance(scores, list):
@@ -138,11 +138,15 @@ Return ONLY the JSON array, no other text."""
             scored_studies = []
             for i, study in enumerate(studies):
                 if i < len(scores) and isinstance(scores[i], dict):
-                    scored_studies.append({
-                        **study,
-                        "quality_score": float(scores[i].get("score", 0)),
-                        "quality_rationale": scores[i].get("rationale", "No rationale provided")
-                    })
+                    scored_studies.append(
+                        {
+                            **study,
+                            "quality_score": float(scores[i].get("score", 0)),
+                            "quality_rationale": scores[i].get(
+                                "rationale", "No rationale provided"
+                            ),
+                        }
+                    )
                 else:
                     scored_studies.append({**study, **_fallback_score(study)})
 
@@ -165,9 +169,7 @@ Return ONLY the JSON array, no other text."""
         """
         # Sort by quality_score (descending)
         ranked = sorted(
-            scored_studies,
-            key=lambda s: s.get('quality_score', 0),
-            reverse=True
+            scored_studies, key=lambda s: s.get("quality_score", 0), reverse=True
         )
 
         return ranked[:top_n]
@@ -185,11 +187,7 @@ Return ONLY the JSON array, no other text."""
 
         if not raw_studies:
             print("⚠️  No studies to evaluate")
-            return {
-                **state,
-                "scored_studies": [],
-                "top_studies": []
-            }
+            return {**state, "scored_studies": [], "top_studies": []}
 
         try:
             # Step 1: Score all studies
@@ -201,7 +199,7 @@ Return ONLY the JSON array, no other text."""
             # Step 3: Display results
             print(f"\n🏆 Top {len(top_studies)} Studies:")
             for i, study in enumerate(top_studies, 1):
-                score = study.get('quality_score', 0)
+                score = study.get("quality_score", 0)
                 print(f"\n   {i}. [{score:.1f}/10] {study['title'][:80]}...")
                 print(f"      {study['authors']} ({study['year']})")
                 print(f"      Type: {study['study_type']}, n={study['sample_size']}")
@@ -211,7 +209,7 @@ Return ONLY the JSON array, no other text."""
             return {
                 **state,
                 "scored_studies": scored_studies,
-                "top_studies": top_studies
+                "top_studies": top_studies,
             }
 
         except Exception as e:
@@ -220,7 +218,7 @@ Return ONLY the JSON array, no other text."""
             return {
                 **state,
                 "scored_studies": raw_studies,
-                "top_studies": raw_studies[:10]
+                "top_studies": raw_studies[:10],
             }
 
 

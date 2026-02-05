@@ -14,9 +14,7 @@ async def test_quality_evaluator():
     # Step 1: Get studies from Search Agent
     print("\n📋 Step 1: Getting studies from Search Agent...")
     search_agent = SearchAgent()
-    state: VerityState = {
-        "claim": "Does creatine improve muscle strength?"
-    }
+    state: VerityState = {"claim": "Does creatine improve muscle strength?"}
 
     search_result = await search_agent.run(state)
     raw_studies = search_result.get("raw_studies", [])
@@ -26,10 +24,7 @@ async def test_quality_evaluator():
     print("\n📋 Step 2: Scoring studies with Quality Evaluator...")
     evaluator = QualityEvaluator()
 
-    state_with_studies = {
-        **search_result,
-        "raw_studies": raw_studies
-    }
+    state_with_studies = {**search_result, "raw_studies": raw_studies}
 
     result = await evaluator.run(state_with_studies)
 
@@ -42,7 +37,7 @@ async def test_quality_evaluator():
     print(f"\n🏆 Top {len(top_studies)} Studies Selected:\n")
 
     for i, study in enumerate(top_studies, 1):
-        score = study.get('quality_score', 0)
+        score = study.get("quality_score", 0)
         print(f"{i}. [{score:.1f}/10] {study['title']}")
         print(f"   {study['authors']}")
         print(f"   {study['journal']} ({study['year']})")

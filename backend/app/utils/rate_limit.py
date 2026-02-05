@@ -10,7 +10,6 @@ import time
 from collections import defaultdict, deque
 
 from fastapi import HTTPException, Request
-from fastapi.responses import JSONResponse
 
 
 # Global state — lives for the lifetime of the process.

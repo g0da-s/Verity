@@ -33,9 +33,7 @@ async def validate_claim(claim: str) -> dict:
         ClaimValidationError: If the claim is too vague
     """
     llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        api_key=settings.groq_api_key,
-        temperature=0
+        model="llama-3.3-70b-versatile", api_key=settings.groq_api_key, temperature=0
     )
 
     system_prompt = """You are a health claim validator. Determine if a claim is SPECIFIC enough to search for scientific evidence.
@@ -66,7 +64,7 @@ If valid, suggestions can be empty. If invalid, provide 2-3 specific claim sugge
 
     messages = [
         SystemMessage(content=system_prompt),
-        HumanMessage(content=f'Claim: "{claim}"')
+        HumanMessage(content=f'Claim: "{claim}"'),
     ]
 
     response = await invoke_with_retry(llm, messages)
@@ -83,7 +81,7 @@ If valid, suggestions can be empty. If invalid, provide 2-3 specific claim sugge
     if not result.get("valid", False):
         raise ClaimValidationError(
             message=result.get("reason", "Claim is too vague"),
-            suggestions=result.get("suggestions", [])
+            suggestions=result.get("suggestions", []),
         )
 
     return result

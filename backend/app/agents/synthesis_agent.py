@@ -29,7 +29,7 @@ class SynthesisAgent:
         self.llm = ChatGroq(
             model="llama-3.3-70b-versatile",
             api_key=settings.groq_api_key,
-            temperature=0.2
+            temperature=0.2,
         )
 
     def prepare_studies_context(self, studies: List[Study]) -> str:
@@ -44,16 +44,16 @@ class SynthesisAgent:
         context_parts = []
 
         for i, study in enumerate(studies, 1):
-            score = study.get('quality_score', 0)
+            score = study.get("quality_score", 0)
             context = f"""
 Study {i} [Quality: {score:.1f}/10]:
-- Title: {study.get('title', 'N/A')}
-- Authors: {study.get('authors', 'N/A')}
-- Journal: {study.get('journal', 'N/A')} ({study.get('year', 'N/A')})
-- Study Type: {study.get('study_type', 'N/A')}
-- Sample Size: n={study.get('sample_size', 0)}
-- Abstract: {study.get('abstract', 'N/A')}
-- URL: {study.get('url', 'N/A')}
+- Title: {study.get("title", "N/A")}
+- Authors: {study.get("authors", "N/A")}
+- Journal: {study.get("journal", "N/A")} ({study.get("year", "N/A")})
+- Study Type: {study.get("study_type", "N/A")}
+- Sample Size: n={study.get("sample_size", 0)}
+- Abstract: {study.get("abstract", "N/A")}
+- URL: {study.get("url", "N/A")}
 """
             context_parts.append(context.strip())
 
@@ -128,7 +128,7 @@ Analyze these studies and generate a verdict about the health claim."""
 
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt)
+            HumanMessage(content=user_prompt),
         ]
 
         try:
@@ -137,10 +137,11 @@ Analyze these studies and generate a verdict about the health claim."""
             # Parse JSON response
             import json
             import re
+
             content = response.content
 
             # Extract JSON from markdown code blocks
-            content = re.sub(r'```(?:json)?\s*|\s*```', '', content).strip()
+            content = re.sub(r"```(?:json)?\s*|\s*```", "", content).strip()
 
             # strict=False allows literal control chars (newlines, tabs)
             # inside strings — LLMs emit these regularly in bullet-point fields
@@ -148,12 +149,20 @@ Analyze these studies and generate a verdict about the health claim."""
 
             # Assemble structured fields into a markdown summary
             sections = []
-            sections.append(f"## Bottom Line\n{result.get('bottom_line', 'No summary available.')}")
-            sections.append(f"## What Research Found\n{result.get('what_research_found', '')}")
-            sections.append(f"## Who Benefits Most\n{result.get('who_benefits_most', '')}")
+            sections.append(
+                f"## Bottom Line\n{result.get('bottom_line', 'No summary available.')}"
+            )
+            sections.append(
+                f"## What Research Found\n{result.get('what_research_found', '')}"
+            )
+            sections.append(
+                f"## Who Benefits Most\n{result.get('who_benefits_most', '')}"
+            )
             if result.get("dosage_and_timing"):
                 sections.append(f"## Dosage & Timing\n{result['dosage_and_timing']}")
-            sections.append(f"## Important Caveats\n{result.get('important_caveats', '')}")
+            sections.append(
+                f"## Important Caveats\n{result.get('important_caveats', '')}"
+            )
 
             summary = "\n\n".join(sections)
 
@@ -169,7 +178,7 @@ Analyze these studies and generate a verdict about the health claim."""
             return {
                 "verdict": "Inconclusive",
                 "verdict_emoji": "❓",
-                "summary": "Unable to synthesize evidence. Please try again later."
+                "summary": "Unable to synthesize evidence. Please try again later.",
             }
 
     async def run(self, state: VerityState) -> VerityState:
@@ -190,7 +199,7 @@ Analyze these studies and generate a verdict about the health claim."""
                 **state,
                 "verdict": "Inconclusive",
                 "verdict_emoji": "❓",
-                "summary": "No quality studies found to evaluate this claim."
+                "summary": "No quality studies found to evaluate this claim.",
             }
 
         try:
@@ -200,19 +209,19 @@ Analyze these studies and generate a verdict about the health claim."""
             result = await self.synthesize_verdict(claim, top_studies)
 
             # Display results
-            print(f"\n{'='*80}")
+            print(f"\n{'=' * 80}")
             print(f"📊 FINAL VERDICT: {result['verdict_emoji']} {result['verdict']}")
-            print(f"{'='*80}")
+            print(f"{'=' * 80}")
             print(f"\n{result['summary']}")
 
-            print(f"\n{'='*80}")
+            print(f"\n{'=' * 80}")
 
             # Return updated state
             return {
                 **state,
                 "verdict": result["verdict"],
                 "verdict_emoji": result["verdict_emoji"],
-                "summary": result["summary"]
+                "summary": result["summary"],
             }
 
         except Exception as e:
@@ -221,7 +230,7 @@ Analyze these studies and generate a verdict about the health claim."""
                 **state,
                 "verdict": "Inconclusive",
                 "verdict_emoji": "❓",
-                "summary": "Unable to synthesize evidence. Please try again later."
+                "summary": "Unable to synthesize evidence. Please try again later.",
             }
 
 

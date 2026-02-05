@@ -1,7 +1,8 @@
 """Quick test of Synthesis Agent with mock data."""
 
 import sys
-sys.path.insert(0, '/Users/goda/Desktop/CODE/Turing College/gsmulk-AE.3.5/backend')
+
+sys.path.insert(0, "/Users/goda/Desktop/CODE/Turing College/gsmulk-AE.3.5/backend")
 
 import asyncio
 from app.agents.synthesis_agent import SynthesisAgent
@@ -26,7 +27,7 @@ async def test_synthesis_quick():
             "abstract": "This meta-analysis examined the effects of creatine supplementation combined with resistance training on muscle strength. Results showed significant improvements in bench press (ES=0.36, p<0.001) and leg press strength (ES=0.42, p<0.001) compared to placebo groups. The effects were consistent across 25 RCTs with 1500 total participants.",
             "url": "https://pubmed.ncbi.nlm.nih.gov/12345/",
             "quality_score": 9.2,
-            "quality_rationale": "High-quality meta-analysis with large sample size"
+            "quality_rationale": "High-quality meta-analysis with large sample size",
         },
         {
             "pubmed_id": "67890",
@@ -39,7 +40,7 @@ async def test_synthesis_quick():
             "abstract": "Systematic review of 18 studies examining creatine supplementation effects on muscle strength in resistance-trained individuals. Results indicate consistent improvements in maximal strength (mean difference: 3.2kg in bench press) and power output. Effects were most pronounced in exercises lasting <30 seconds.",
             "url": "https://pubmed.ncbi.nlm.nih.gov/67890/",
             "quality_score": 8.7,
-            "quality_rationale": "Well-conducted systematic review from reputable journal"
+            "quality_rationale": "Well-conducted systematic review from reputable journal",
         },
         {
             "pubmed_id": "11111",
@@ -52,14 +53,14 @@ async def test_synthesis_quick():
             "abstract": "Meta-analysis of 8 RCTs examining creatine effects in older adults (60+ years). Creatine supplementation combined with resistance training showed moderate improvements in upper-body strength (ES=0.28) and lower-body strength (ES=0.31). Effects were more modest than in younger populations but still statistically significant.",
             "url": "https://pubmed.ncbi.nlm.nih.gov/11111/",
             "quality_score": 7.8,
-            "quality_rationale": "Good quality meta-analysis with specific population focus"
-        }
+            "quality_rationale": "Good quality meta-analysis with specific population focus",
+        },
     ]
 
     # Create state
     state: VerityState = {
         "claim": "Does creatine improve muscle strength?",
-        "top_studies": mock_studies
+        "top_studies": mock_studies,
     }
 
     print(f"💬 Claim: {state['claim']}")
@@ -68,7 +69,7 @@ async def test_synthesis_quick():
 
     # Run Synthesis Agent
     synthesizer = SynthesisAgent()
-    result = await synthesizer.run(state)
+    await synthesizer.run(state)
 
     # Display results
     print("\n" + "=" * 80)

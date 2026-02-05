@@ -30,7 +30,7 @@ class SearchAgent:
         self.llm = ChatGroq(
             model="llama-3.3-70b-versatile",
             api_key=settings.groq_api_key,
-            temperature=0.3
+            temperature=0.3,
         )
         self.pubmed = PubMedTool()
 
@@ -86,7 +86,7 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
 
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt)
+            HumanMessage(content=user_prompt),
         ]
 
         try:
@@ -94,6 +94,7 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
 
             # Parse JSON response
             import json
+
             # Extract JSON from response (handle potential markdown code blocks)
             content = response.content
             if "```json" in content:
@@ -158,10 +159,7 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
         claim = state.get("claim", "")
 
         if not claim:
-            return {
-                **state,
-                "search_error": "No claim provided"
-            }
+            return {**state, "search_error": "No claim provided"}
 
         try:
             print(f"\n🔍 Search Agent: Analyzing claim '{claim}'")
@@ -184,7 +182,9 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
                 for i, study in enumerate(studies[:3], 1):
                     print(f"   {i}. {study['title'][:80]}...")
                     print(f"      {study['authors']} ({study['year']})")
-                    print(f"      Type: {study['study_type']}, n={study['sample_size']}")
+                    print(
+                        f"      Type: {study['study_type']}, n={study['sample_size']}"
+                    )
 
             # Return updated state
             # Note: search_queries and raw_studies use 'add' operator, so they append
@@ -192,15 +192,12 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
                 **state,
                 "search_queries": queries,
                 "raw_studies": studies,
-                "search_error": None if studies else "No studies found"
+                "search_error": None if studies else "No studies found",
             }
 
         except Exception as e:
             print(f"❌ Search Agent failed: {e}")
-            return {
-                **state,
-                "search_error": str(e)
-            }
+            return {**state, "search_error": str(e)}
 
 
 # Node function for LangGraph

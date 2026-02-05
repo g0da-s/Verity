@@ -64,7 +64,7 @@ async def root():
         "message": "Verity API",
         "version": "1.0.0",
         "docs": "/docs",
-        "health": "/api/verity/health"
+        "health": "/api/verity/health",
     }
 
 

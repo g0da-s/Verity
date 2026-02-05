@@ -1,7 +1,8 @@
 """Test the full 3-agent pipeline: Search → Quality → Synthesis."""
 
 import sys
-sys.path.insert(0, '/Users/goda/Desktop/CODE/Turing College/gsmulk-AE.3.5/backend')
+
+sys.path.insert(0, "/Users/goda/Desktop/CODE/Turing College/gsmulk-AE.3.5/backend")
 
 import asyncio
 from app.agents.search_agent import SearchAgent
@@ -12,32 +13,32 @@ from app.models.state import VerityState
 
 async def test_full_pipeline():
     """Test complete Verity pipeline with all 3 agents."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("🧪 TESTING FULL VERITY PIPELINE")
-    print("="*80)
+    print("=" * 80)
 
     # Initial state
-    state: VerityState = {
-        "claim": "Does creatine improve muscle strength?"
-    }
+    state: VerityState = {"claim": "Does creatine improve muscle strength?"}
 
     print(f"\n💬 User Claim: '{state['claim']}'")
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
 
     # AGENT 1: Search Agent
     print("\n🔍 AGENT 1: SEARCH AGENT")
-    print("="*80)
+    print("=" * 80)
     search_agent = SearchAgent()
     state = await search_agent.run(state)
 
     raw_studies_count = len(state.get("raw_studies", []))
     queries_count = len(state.get("search_queries", []))
-    print(f"\n✅ Search Complete: {queries_count} queries → {raw_studies_count} studies found")
+    print(
+        f"\n✅ Search Complete: {queries_count} queries → {raw_studies_count} studies found"
+    )
 
     # AGENT 2: Quality Evaluator
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("⚖️  AGENT 2: QUALITY EVALUATOR")
-    print("="*80)
+    print("=" * 80)
     evaluator = QualityEvaluator()
     state = await evaluator.run(state)
 
@@ -45,24 +46,24 @@ async def test_full_pipeline():
     print(f"\n✅ Quality Evaluation Complete: Top {top_studies_count} studies selected")
 
     # AGENT 3: Synthesis Agent
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("🔬 AGENT 3: SYNTHESIS AGENT")
-    print("="*80)
+    print("=" * 80)
     synthesizer = SynthesisAgent()
     state = await synthesizer.run(state)
 
     # Final Results
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("🎯 FINAL RESULTS")
-    print("="*80)
+    print("=" * 80)
 
     print(f"\n📋 Claim: {state.get('claim')}")
     print(f"\n🏆 Verdict: {state.get('verdict_emoji')} {state.get('verdict')}")
     print(f"\n📝 Summary:\n{state.get('summary')}")
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("✅ PIPELINE TEST COMPLETE")
-    print("="*80)
+    print("=" * 80)
 
     # Display stats
     print("\n📊 Pipeline Stats:")

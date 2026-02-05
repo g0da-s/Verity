@@ -7,10 +7,13 @@ from langchain_core.messages import BaseMessage
 
 class RateLimitExceeded(Exception):
     """Raised when all retries are exhausted due to rate limiting."""
+
     pass
 
 
-async def invoke_with_retry(llm, messages: list[BaseMessage], max_retries: int = 3) -> BaseMessage:
+async def invoke_with_retry(
+    llm, messages: list[BaseMessage], max_retries: int = 3
+) -> BaseMessage:
     """Invoke an LLM with automatic retry on Groq 429 rate-limit errors.
 
     Reads the Retry-After header from the response to know how long to wait.
@@ -46,5 +49,7 @@ async def invoke_with_retry(llm, messages: list[BaseMessage], max_retries: int =
                     except (ValueError, TypeError):
                         pass
 
-            print(f"⏳ Rate limited (attempt {attempt + 1}/{max_retries}). Waiting {wait}s...")
+            print(
+                f"⏳ Rate limited (attempt {attempt + 1}/{max_retries}). Waiting {wait}s..."
+            )
             await asyncio.sleep(wait)

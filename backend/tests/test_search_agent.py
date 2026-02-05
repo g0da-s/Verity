@@ -13,9 +13,7 @@ async def test_search_agent():
     agent = SearchAgent()
 
     # Test state
-    state: VerityState = {
-        "claim": "Does creatine improve muscle strength?"
-    }
+    state: VerityState = {"claim": "Does creatine improve muscle strength?"}
 
     print(f"\n📋 Input claim: {state['claim']}")
     print("\n" + "=" * 60)
@@ -31,7 +29,7 @@ async def test_search_agent():
     if result.get("search_error"):
         print(f"❌ Error: {result['search_error']}")
     else:
-        print(f"\n✅ Success!")
+        print("\n✅ Success!")
         print(f"\n📝 Generated Queries ({len(result.get('search_queries', []))}):")
         for i, q in enumerate(result.get("search_queries", []), 1):
             print(f"   {i}. {q}")
@@ -46,7 +44,9 @@ async def test_search_agent():
                 print(f"\n   {i}. {study['title'][:100]}")
                 print(f"      Authors: {study['authors']}")
                 print(f"      Journal: {study['journal']}")
-                print(f"      Year: {study['year']}, Type: {study['study_type']}, n={study['sample_size']}")
+                print(
+                    f"      Year: {study['year']}, Type: {study['study_type']}, n={study['sample_size']}"
+                )
                 print(f"      URL: {study['url']}")
 
     print("\n" + "=" * 60)

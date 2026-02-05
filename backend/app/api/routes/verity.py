@@ -20,18 +20,20 @@ router = APIRouter(prefix="/api/verity", tags=["verity"])
 # Request/Response models
 class VerifyClaimRequest(BaseModel):
     """Request model for claim verification."""
-    claim: str = Field(..., min_length=10, max_length=500, description="Health claim to verify")
+
+    claim: str = Field(
+        ..., min_length=10, max_length=500, description="Health claim to verify"
+    )
 
     class Config:
         json_schema_extra = {
-            "example": {
-                "claim": "Does creatine improve muscle strength?"
-            }
+            "example": {"claim": "Does creatine improve muscle strength?"}
         }
 
 
 class Study(BaseModel):
     """Study model for response."""
+
     pubmed_id: str
     title: str
     authors: str
@@ -46,6 +48,7 @@ class Study(BaseModel):
 
 class VerifyClaimResponse(BaseModel):
     """Response model for claim verification."""
+
     claim: str
     verdict: str
     verdict_emoji: str
@@ -73,7 +76,7 @@ class VerifyClaimResponse(BaseModel):
                         "sample_size": 1500,
                         "url": "https://pubmed.ncbi.nlm.nih.gov/12345/",
                         "quality_score": 9.2,
-                        "quality_rationale": "High-quality meta-analysis"
+                        "quality_rationale": "High-quality meta-analysis",
                     }
                 ],
                 "search_queries": [
@@ -82,18 +85,17 @@ class VerifyClaimResponse(BaseModel):
                 "stats": {
                     "studies_found": 12,
                     "studies_scored": 12,
-                    "top_studies_count": 5
+                    "top_studies_count": 5,
                 },
-                "cache_hit": False
+                "cache_hit": False,
             }
         }
 
 
-@router.post("/verify", response_model=VerifyClaimResponse, dependencies=[Depends(rate_limit)])
-async def verify_claim(
-    request: VerifyClaimRequest,
-    db: AsyncSession = Depends(get_db)
-):
+@router.post(
+    "/verify", response_model=VerifyClaimResponse, dependencies=[Depends(rate_limit)]
+)
+async def verify_claim(request: VerifyClaimRequest, db: AsyncSession = Depends(get_db)):
     """Verify a health claim using evidence from PubMed.
 
     This endpoint first validates the claim is specific enough, then checks
@@ -119,17 +121,15 @@ async def verify_claim(
                 detail={
                     "error": "Claim is too vague",
                     "message": e.message,
-                    "suggestions": e.suggestions
-                }
+                    "suggestions": e.suggestions,
+                },
             )
 
         # Check cache first
         cached = await get_cached_result(db, request.claim)
         if cached is not None:
             # Return cached result
-            top_studies = [
-                Study(**study) for study in cached.studies_json
-            ]
+            top_studies = [Study(**study) for study in cached.studies_json]
             return VerifyClaimResponse(
                 claim=cached.original_claim,
                 verdict=cached.verdict,
@@ -138,7 +138,7 @@ async def verify_claim(
                 top_studies=top_studies,
                 search_queries=[],  # Not stored in cache
                 stats=cached.stats,
-                cache_hit=True
+                cache_hit=True,
             )
 
         # Cache miss - run the Verity pipeline
@@ -149,8 +149,7 @@ async def verify_claim(
         # Check if we got an error
         if result.get("search_error"):
             raise HTTPException(
-                status_code=500,
-                detail=f"Search failed: {result['search_error']}"
+                status_code=500, detail=f"Search failed: {result['search_error']}"
             )
 
         # Format top studies for response
@@ -165,7 +164,7 @@ async def verify_claim(
                 sample_size=study["sample_size"],
                 url=study["url"],
                 quality_score=study.get("quality_score"),
-                quality_rationale=study.get("quality_rationale")
+                quality_rationale=study.get("quality_rationale"),
             )
             for study in result.get("top_studies", [])
         ]
@@ -181,9 +180,9 @@ async def verify_claim(
             stats={
                 "studies_found": len(result.get("raw_studies", [])),
                 "studies_scored": len(result.get("scored_studies", [])),
-                "top_studies_count": len(top_studies)
+                "top_studies_count": len(top_studies),
             },
-            cache_hit=False
+            cache_hit=False,
         )
 
         # Save to cache
@@ -208,22 +207,17 @@ async def verify_claim(
             status_code=503,
             detail={
                 "message": "Verity is temporarily unavailable due to high demand. Please try again in about a minute.",
-                "retry_after": 60
-            }
+                "retry_after": 60,
+            },
         )
     except Exception as e:
         print(f"❌ Unhandled error in /verify: {e}")
         raise HTTPException(
-            status_code=500,
-            detail="Something went wrong. Please try again later."
+            status_code=500, detail="Something went wrong. Please try again later."
         )
 
 
 @router.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {
-        "status": "healthy",
-        "service": "Verity API",
-        "version": "1.0.0"
-    }
+    return {"status": "healthy", "service": "Verity API", "version": "1.0.0"}

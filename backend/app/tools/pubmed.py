@@ -40,10 +40,7 @@ class PubMedTool:
         self.last_request_time = asyncio.get_event_loop().time()
 
     async def search(
-        self,
-        query: str,
-        max_results: int = 20,
-        sort: str = "relevance"
+        self, query: str, max_results: int = 20, sort: str = "relevance"
     ) -> List[str]:
         """Search PubMed and return list of PubMed IDs.
 
@@ -70,8 +67,8 @@ class PubMedTool:
                     term=query,
                     retmax=max_results,
                     sort=sort,
-                    usehistory="y"
-                )
+                    usehistory="y",
+                ),
             )
 
             record = Entrez.read(handle)
@@ -108,8 +105,8 @@ class PubMedTool:
                     db="pubmed",
                     id=",".join(pubmed_ids),
                     rettype="medline",
-                    retmode="xml"
-                )
+                    retmode="xml",
+                ),
             )
 
             records = Entrez.read(handle)
@@ -154,7 +151,9 @@ class PubMedTool:
             journal = article.get("Journal", {}).get("Title", "Unknown Journal")
 
             # Extract year
-            pub_date = article.get("Journal", {}).get("JournalIssue", {}).get("PubDate", {})
+            pub_date = (
+                article.get("Journal", {}).get("JournalIssue", {}).get("PubDate", {})
+            )
             year = self._extract_year(pub_date)
 
             # Extract abstract
@@ -179,10 +178,10 @@ class PubMedTool:
                 study_type=study_type,
                 sample_size=sample_size,
                 abstract=abstract,
-                url=url
+                url=url,
             )
 
-        except Exception as e:
+        except Exception:
             # Skip records that fail to parse
             return None
 
@@ -294,7 +293,10 @@ class PubMedTool:
             return "meta-analysis"
 
         # Check for RCT
-        if re.search(r"randomized controlled trial|randomized control trial|rct|randomised", combined):
+        if re.search(
+            r"randomized controlled trial|randomized control trial|rct|randomised",
+            combined,
+        ):
             return "rct"
 
         # Check for cohort study
@@ -327,7 +329,7 @@ class PubMedTool:
             r"N\s*=\s*(\d+,?\d*)",
             r"(\d+,?\d*)\s+participants",
             r"(\d+,?\d*)\s+subjects",
-            r"(\d+,?\d*)\s+patients"
+            r"(\d+,?\d*)\s+patients",
         ]
 
         for pattern in patterns:
@@ -343,11 +345,7 @@ class PubMedTool:
         # Default if not found
         return 0
 
-    async def search_and_fetch(
-        self,
-        query: str,
-        max_results: int = 20
-    ) -> List[Study]:
+    async def search_and_fetch(self, query: str, max_results: int = 20) -> List[Study]:
         """Convenience method: search and fetch in one call.
 
         Args:
