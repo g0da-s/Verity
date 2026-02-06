@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 
 from app.config import settings  # noqa: E402
-from app.api.routes import verity  # noqa: E402
+from app.api import verity  # noqa: E402
 from app.models.database import Base  # noqa: E402
 
 
@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Verity API",
-    description="Evidence-based health claim verification using PubMed and Claude AI",
+    description="Evidence-based health claim verification using PubMed and Groq AI",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",

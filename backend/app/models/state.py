@@ -1,10 +1,11 @@
 """LangGraph state schema - data passed between agents in the pipeline."""
 
-from typing import TypedDict, Annotated, List
+from typing import TypedDict, Annotated, List, Optional
 from operator import add
+from pydantic import BaseModel
 
 
-class Study(TypedDict, total=False):
+class Study(BaseModel):
     """Metadata for a scientific study from PubMed."""
 
     pubmed_id: str
@@ -14,10 +15,10 @@ class Study(TypedDict, total=False):
     year: int
     study_type: str
     sample_size: int
-    abstract: str
     url: str
-    quality_score: float
-    quality_rationale: str
+    abstract: Optional[str] = None
+    quality_score: Optional[float] = None
+    quality_rationale: Optional[str] = None
 
 
 class VerityState(TypedDict, total=False):

@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class SearchAgent:
     """Agent responsible for finding relevant PubMed studies.
 
-    Uses Claude to generate optimized search queries, then fetches studies
+    Uses Groq to generate optimized search queries, then fetches studies
     from PubMed. Prioritizes high-quality study types (meta-analyses, RCTs).
     """
 

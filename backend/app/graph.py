@@ -11,21 +11,17 @@ from app.agents.quality_evaluator import quality_evaluator_node
 from app.agents.synthesis_agent import synthesis_node
 
 
-# Initialize the graph with our state schema
 workflow = StateGraph(VerityState)
 
-# Add the 3 agent nodes
 workflow.add_node("search", search_node)
 workflow.add_node("quality_evaluator", quality_evaluator_node)
 workflow.add_node("synthesis", synthesis_node)
 
-# Define the flow: search → quality → synthesis → END
 workflow.set_entry_point("search")
 workflow.add_edge("search", "quality_evaluator")
 workflow.add_edge("quality_evaluator", "synthesis")
 workflow.add_edge("synthesis", END)
 
-# Compile the graph
 verity_graph = workflow.compile()
 
 

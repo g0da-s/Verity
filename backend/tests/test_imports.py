@@ -18,9 +18,9 @@ except Exception as e:
     print(f"❌ pubmed tool failed: {e}")
 
 try:
-    print("✅ langchain_anthropic imported")
+    print("✅ langchain_groq imported")
 except Exception as e:
-    print(f"❌ langchain_anthropic failed: {e}")
+    print(f"❌ langchain_groq failed: {e}")
 
 try:
     print("✅ search_agent imported")

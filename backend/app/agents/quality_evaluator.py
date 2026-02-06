@@ -2,7 +2,7 @@
 
 This agent:
 1. Takes raw studies from Search Agent
-2. Uses Claude to score each study (0-10)
+2. Uses Groq to score each study (0-10)
 3. Considers: study type, sample size, journal, recency
 4. Returns top 5-10 highest quality studies
 

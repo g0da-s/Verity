@@ -4,10 +4,11 @@ import time
 import logging
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.graph import run_verity
+from app.models.state import Study
 from app.db.session import get_db
 from app.services.cache import get_cached_result, save_to_cache
 from app.services.claim_validator import validate_claim, ClaimValidationError
@@ -33,20 +34,6 @@ class VerifyClaimRequest(BaseModel):
             "example": {"claim": "Does creatine improve muscle strength?"}
         }
 
-
-class Study(BaseModel):
-    """Study model for response."""
-
-    pubmed_id: str
-    title: str
-    authors: str
-    journal: str
-    year: int
-    study_type: str
-    sample_size: int
-    url: str
-    quality_score: Optional[float] = None
-    quality_rationale: Optional[str] = None
 
 
 class VerifyClaimResponse(BaseModel):

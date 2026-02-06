@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 class SynthesisAgent:
     """Agent responsible for generating final verdict and summary.
 
-    Uses Claude to analyze study findings and synthesize evidence-based
+    Uses Groq to analyze study findings and synthesize evidence-based
     conclusions about health claims.
     """
 
@@ -43,7 +43,7 @@ class SynthesisAgent:
         )
 
     def prepare_studies_context(self, studies: List[Study]) -> str:
-        """Format studies into context for Claude.
+        """Format studies into context for the LLM.
 
         Args:
             studies: List of top-quality studies
