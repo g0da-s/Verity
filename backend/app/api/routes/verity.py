@@ -143,7 +143,10 @@ async def verify_claim(request: VerifyClaimRequest, db: AsyncSession = Depends(g
 
         # Cache miss - run the Verity pipeline
         start_time = time.time()
+        print(f"🚀 Starting pipeline for: {request.claim}")
         result = await run_verity(request.claim)
+        print(f"✅ Pipeline complete. Result keys: {list(result.keys())}")
+        print(f"   raw_studies count: {len(result.get('raw_studies', []))}")
         execution_time = time.time() - start_time
 
         # Check if we got an error
