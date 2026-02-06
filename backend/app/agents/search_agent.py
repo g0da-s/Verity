@@ -192,7 +192,7 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
                 **state,
                 "search_queries": queries,
                 "raw_studies": studies,
-                "search_error": None if studies else "No studies found",
+                "search_error": None,  # Only set for actual errors, not empty results
             }
 
         except Exception as e:
