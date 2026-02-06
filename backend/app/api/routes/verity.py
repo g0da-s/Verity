@@ -152,6 +152,23 @@ async def verify_claim(request: VerifyClaimRequest, db: AsyncSession = Depends(g
                 status_code=500, detail=f"Search failed: {result['search_error']}"
             )
 
+        # Handle case where no studies were found
+        if not result.get("raw_studies"):
+            return VerifyClaimResponse(
+                claim=result["claim"],
+                verdict="Inconclusive",
+                verdict_emoji="🔍",
+                summary="No peer-reviewed studies were found on PubMed for this specific topic. This doesn't mean the claim is false — it may just be too new, too specific, or not yet well-researched. Try rephrasing with broader terms.",
+                top_studies=[],
+                search_queries=result.get("search_queries", []),
+                stats={
+                    "studies_found": 0,
+                    "studies_scored": 0,
+                    "top_studies_count": 0,
+                },
+                cache_hit=False,
+            )
+
         # Format top studies for response
         top_studies = [
             Study(
