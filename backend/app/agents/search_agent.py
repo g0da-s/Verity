@@ -1,7 +1,7 @@
 """Search Agent - Finds relevant scientific studies from PubMed.
 
 This agent:
-1. Generates optimized PubMed search queries using Claude
+1. Generates optimized PubMed search queries using Groq
 2. Executes searches via PubMed E-utilities API
 3. Returns raw studies for quality evaluation
 
@@ -9,6 +9,7 @@ Designed to find high-quality evidence: meta-analyses, RCTs, systematic reviews.
 """
 
 import asyncio
+import logging
 from typing import List
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -16,6 +17,9 @@ from app.config import settings
 from app.models.state import VerityState
 from app.tools.pubmed import PubMedTool
 from app.utils.retry import invoke_with_retry
+from app.utils.sanitize import sanitize_claim, wrap_user_content, get_security_instruction
+
+logger = logging.getLogger(__name__)
 
 
 class SearchAgent:
@@ -78,11 +82,15 @@ OUTPUT FORMAT (JSON only, no explanation):
     "query 2",
     "query 3"
   ]
-}"""
+}
+""" + get_security_instruction()
 
-        user_prompt = f"""Health claim: "{claim}"
+        # Security: Sanitize and wrap the claim
+        sanitized_claim = sanitize_claim(claim)
+        wrapped_claim = wrap_user_content(sanitized_claim)
 
-Generate 2-3 PubMed search queries to find the best scientific evidence about this claim."""
+        user_prompt = f"""Generate 2-3 PubMed search queries for this health claim:
+{wrapped_claim}"""
 
         messages = [
             SystemMessage(content=system_prompt),
@@ -113,8 +121,9 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
 
         except Exception as e:
             # Fallback query if LLM fails
-            print(f"Query generation failed: {e}")
-            return [f"{claim} meta-analysis", f"{claim} systematic review"]
+            logger.warning(f"Query generation failed: {e}")
+            sanitized = sanitize_claim(claim)
+            return [f"{sanitized} meta-analysis", f"{sanitized} systematic review"]
 
     async def search_studies(self, queries: List[str], max_per_query: int = 6) -> List:
         """Execute PubMed searches for all queries in parallel.
@@ -162,29 +171,17 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
             return {**state, "search_error": "No claim provided"}
 
         try:
-            print(f"\n🔍 Search Agent: Analyzing claim '{claim}'")
+            logger.info("Search Agent: Analyzing claim")
 
             # Step 1: Generate optimized queries
-            print("📝 Generating PubMed search queries...")
+            logger.info("Generating PubMed search queries...")
             queries = await self.generate_queries(claim)
-            print(f"   Generated {len(queries)} queries:")
-            for i, q in enumerate(queries, 1):
-                print(f"   {i}. {q}")
+            logger.info(f"Generated {len(queries)} queries")
 
             # Step 2: Execute searches
-            print("\n🔬 Searching PubMed...")
+            logger.info("Searching PubMed...")
             studies = await self.search_studies(queries)
-            print(f"   Found {len(studies)} unique studies")
-
-            # Step 3: Display sample results
-            if studies:
-                print("\n📚 Sample studies:")
-                for i, study in enumerate(studies[:3], 1):
-                    print(f"   {i}. {study['title'][:80]}...")
-                    print(f"      {study['authors']} ({study['year']})")
-                    print(
-                        f"      Type: {study['study_type']}, n={study['sample_size']}"
-                    )
+            logger.info(f"Found {len(studies)} unique studies")
 
             # Return updated state
             # Note: search_queries and raw_studies use 'add' operator, so they append
@@ -196,7 +193,7 @@ Generate 2-3 PubMed search queries to find the best scientific evidence about th
             }
 
         except Exception as e:
-            print(f"❌ Search Agent failed: {e}")
+            logger.error(f"Search Agent failed: {e}")
             return {**state, "search_error": str(e)}
 
 

@@ -9,12 +9,22 @@ This agent:
 Final step in the Verity pipeline.
 """
 
+import logging
 from typing import List
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import settings
 from app.models.state import VerityState, Study
 from app.utils.retry import invoke_with_retry
+from app.utils.sanitize import (
+    sanitize_claim,
+    wrap_user_content,
+    get_security_instruction,
+    validate_verdict,
+    validate_verdict_emoji,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class SynthesisAgent:
@@ -69,6 +79,8 @@ Study {i} [Quality: {score:.1f}/10]:
         Returns:
             Dict with verdict, verdict_emoji, and summary
         """
+        # Security: Sanitize the claim before interpolating into prompt
+        sanitized_claim = sanitize_claim(claim)
         studies_context = self.prepare_studies_context(studies)
 
         system_prompt = """You are a health science communicator who explains research to everyday people. Analyze the provided studies and generate a comprehensive, easy-to-read verdict about a health claim.
@@ -117,9 +129,14 @@ OUTPUT FORMAT (JSON only, no explanation):
   "who_benefits_most": "• point 1\n• point 2",
   "dosage_and_timing": "• point 1\n• point 2" or null,
   "important_caveats": "• point 1\n• point 2"
-}"""
+}
+""" + get_security_instruction()
 
-        user_prompt = f"""Health Claim: "{claim}"
+        # Wrap the claim in tags to create clear boundary
+        wrapped_claim = wrap_user_content(sanitized_claim)
+
+        user_prompt = f"""Health Claim to analyze:
+{wrapped_claim}
 
 Studies to Analyze:
 {studies_context}
@@ -147,6 +164,14 @@ Analyze these studies and generate a verdict about the health claim."""
             # inside strings — LLMs emit these regularly in bullet-point fields
             result = json.loads(content, strict=False)
 
+            # Security: Validate and normalize the verdict (defense-in-depth)
+            raw_verdict = result.get("verdict", "Inconclusive")
+            validated_verdict = validate_verdict(raw_verdict)
+            validated_emoji = validate_verdict_emoji(validated_verdict)
+
+            result["verdict"] = validated_verdict
+            result["verdict_emoji"] = validated_emoji
+
             # Assemble structured fields into a markdown summary
             sections = []
             sections.append(
@@ -173,7 +198,7 @@ Analyze these studies and generate a verdict about the health claim."""
             }
 
         except Exception as e:
-            print(f"❌ Synthesis failed: {e}")
+            logger.error(f"Synthesis failed: {e}")
             # Fallback response
             return {
                 "verdict": "Inconclusive",
@@ -194,7 +219,7 @@ Analyze these studies and generate a verdict about the health claim."""
         top_studies = state.get("top_studies", [])
 
         if not top_studies:
-            print("⚠️  No studies to synthesize")
+            logger.warning("No studies to synthesize")
             return {
                 **state,
                 "verdict": "Inconclusive",
@@ -203,18 +228,12 @@ Analyze these studies and generate a verdict about the health claim."""
             }
 
         try:
-            print(f"\n🔬 Synthesis Agent: Analyzing {len(top_studies)} top studies...")
+            logger.info(f"Synthesis Agent: Analyzing {len(top_studies)} top studies")
 
             # Generate verdict and summary
             result = await self.synthesize_verdict(claim, top_studies)
 
-            # Display results
-            print(f"\n{'=' * 80}")
-            print(f"📊 FINAL VERDICT: {result['verdict_emoji']} {result['verdict']}")
-            print(f"{'=' * 80}")
-            print(f"\n{result['summary']}")
-
-            print(f"\n{'=' * 80}")
+            logger.info(f"Final verdict: {result['verdict']}")
 
             # Return updated state
             return {
@@ -225,7 +244,7 @@ Analyze these studies and generate a verdict about the health claim."""
             }
 
         except Exception as e:
-            print(f"❌ Synthesis Agent failed: {e}")
+            logger.error(f"Synthesis Agent failed: {e}")
             return {
                 **state,
                 "verdict": "Inconclusive",

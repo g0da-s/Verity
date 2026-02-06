@@ -1,71 +1,42 @@
-"""LangGraph state schema - data passed between agents.
-
-This module defines the state structure that flows through the 3-agent pipeline:
-Search Agent → Quality Evaluator Agent → Synthesis Agent
-
-The state uses TypedDict for type safety and LangGraph's Annotated types
-for reducer functions (like appending to lists).
-"""
+"""LangGraph state schema - data passed between agents in the pipeline."""
 
 from typing import TypedDict, Annotated, List
 from operator import add
 
 
 class Study(TypedDict, total=False):
-    """Metadata for a single scientific study from PubMed.
+    """Metadata for a scientific study from PubMed."""
 
-    total=False allows fields to be optional (added incrementally by agents).
-    """
-
-    # Basic metadata (from PubMed)
-    pubmed_id: str  # e.g., "12345678"
+    pubmed_id: str
     title: str
-    authors: str  # Comma-separated: "Smith J, Jones K, Williams L"
+    authors: str
     journal: str
     year: int
-    study_type: str  # "meta-analysis", "rct", "observational", etc.
+    study_type: str
     sample_size: int
-    abstract: str  # Results and Conclusions sections (or full text if unstructured)
-    url: str  # https://pubmed.ncbi.nlm.nih.gov/ID/
-
-    # Quality metrics (added by Quality Evaluator Agent)
-    quality_score: float  # 0-10 scale
-    quality_rationale: str  # Why this score was assigned
+    abstract: str
+    url: str
+    quality_score: float
+    quality_rationale: str
 
 
 class VerityState(TypedDict, total=False):
-    """Main state object passed through the agent pipeline.
+    """State passed through the agent pipeline. Fields added incrementally by each agent."""
 
-    Each agent reads from and writes to this shared state.
-    Fields are added incrementally as agents process the claim.
+    # Input
+    claim: str
+    normalized_claim: str
 
-    total=False makes all fields optional, allowing incremental updates.
-    """
+    # Search Agent outputs (Annotated with 'add' appends instead of replaces)
+    search_queries: Annotated[List[str], add]
+    raw_studies: Annotated[List[Study], add]
+    search_error: str
 
-    # ============================================================
-    # INPUT (from user, set initially)
-    # ============================================================
-    claim: str  # Original user input: "Is creatine good?"
-    normalized_claim: str  # Cleaned version: "is creatine good"
+    # Quality Evaluator outputs
+    scored_studies: List[Study]
+    top_studies: List[Study]
 
-    # ============================================================
-    # SEARCH AGENT OUTPUTS
-    # ============================================================
-    # Using Annotated with 'add' operator allows appending to lists
-    # instead of replacing them (useful for multiple search attempts)
-    search_queries: Annotated[List[str], add]  # Generated PubMed queries
-    raw_studies: Annotated[List[Study], add]  # All studies found (20-30)
-    search_error: str  # Error message if search failed, None otherwise
-
-    # ============================================================
-    # QUALITY EVALUATOR AGENT OUTPUTS
-    # ============================================================
-    scored_studies: List[Study]  # All studies with quality scores added
-    top_studies: List[Study]  # Top 8 studies selected for synthesis
-
-    # ============================================================
-    # SYNTHESIS AGENT OUTPUTS
-    # ============================================================
-    verdict: str  # "works", "maybe", "doesnt_work"
-    verdict_emoji: str  # "✅", "⚠️", "❌"
-    summary: str  # Full formatted markdown output for display
+    # Synthesis Agent outputs
+    verdict: str
+    verdict_emoji: str
+    summary: str

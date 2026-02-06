@@ -1,11 +1,14 @@
 """Cache service for storing and retrieving verification results."""
 
+import logging
 from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.database import CachedResult
 from app.utils.normalize import normalize_claim
+
+logger = logging.getLogger(__name__)
 
 
 async def get_cached_result(db: AsyncSession, claim: str) -> CachedResult | None:
@@ -15,7 +18,7 @@ async def get_cached_result(db: AsyncSession, claim: str) -> CachedResult | None
     Updates last_accessed timestamp on cache hit.
     """
     normalized = normalize_claim(claim)
-    print(f"🔍 Cache lookup for: '{normalized}'")
+    logger.debug(f"Cache lookup for normalized claim")
 
     result = await db.execute(
         select(CachedResult).where(CachedResult.normalized_claim == normalized)
@@ -23,19 +26,19 @@ async def get_cached_result(db: AsyncSession, claim: str) -> CachedResult | None
     cached = result.scalar_one_or_none()
 
     if cached is None:
-        print("❌ Cache MISS - no entry found")
+        logger.debug("Cache MISS - no entry found")
         return None
 
     # Check if expired
     if cached.is_expired():
-        print("⏰ Cache MISS - entry expired")
+        logger.debug("Cache MISS - entry expired")
         return None
 
     # Update last_accessed timestamp
     cached.last_accessed = datetime.now(timezone.utc)
     await db.commit()
 
-    print(f"✅ Cache HIT - returning cached result (v{cached.version})")
+    logger.info(f"Cache HIT (v{cached.version})")
     return cached
 
 
@@ -57,7 +60,7 @@ async def save_to_cache(
     Otherwise, create a new entry.
     """
     normalized = normalize_claim(claim)
-    print(f"💾 Saving to cache: '{normalized}'")
+    logger.debug("Saving to cache")
 
     # Check if entry already exists
     result = await db.execute(
@@ -67,7 +70,7 @@ async def save_to_cache(
 
     if cached is not None:
         # Update existing entry
-        print(f"   Updating existing entry (v{cached.version})")
+        logger.debug(f"Updating existing cache entry (v{cached.version})")
         cached.update_with_fresh_data(
             verdict=verdict,
             verdict_emoji=verdict_emoji,
@@ -79,7 +82,7 @@ async def save_to_cache(
         )
     else:
         # Create new entry
-        print("   Creating new cache entry")
+        logger.debug("Creating new cache entry")
         cached = CachedResult.create_with_ttl(
             days=ttl_days,
             normalized_claim=normalized,
@@ -95,6 +98,6 @@ async def save_to_cache(
 
     await db.commit()
     await db.refresh(cached)
-    print(f"✅ Cache saved successfully (v{cached.version})")
+    logger.info(f"Cache saved (v{cached.version})")
 
     return cached

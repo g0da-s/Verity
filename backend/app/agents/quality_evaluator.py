@@ -10,6 +10,7 @@ Ensures only high-quality evidence is used for final verdict.
 """
 
 import json
+import logging
 import re
 from typing import List, Dict
 from langchain_groq import ChatGroq
@@ -17,6 +18,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import settings
 from app.utils.retry import invoke_with_retry
 from app.models.state import VerityState, Study
+
+logger = logging.getLogger(__name__)
 
 
 def _fallback_score(study: Study) -> Dict:
@@ -68,7 +71,7 @@ class QualityEvaluator:
         if not studies:
             return []
 
-        print(f"\n⚖️  Quality Evaluator: Scoring {len(studies)} studies...")
+        logger.info(f"Quality Evaluator: Scoring {len(studies)} studies")
 
         system_prompt = """You are a scientific quality assessor. You will be given a numbered list of studies. Score EACH one from 0-10 based on these criteria:
 
@@ -150,11 +153,11 @@ Return ONLY the JSON array, no other text."""
                 else:
                     scored_studies.append({**study, **_fallback_score(study)})
 
-            print(f"   Scored {len(scored_studies)}/{len(studies)} studies")
+            logger.info(f"Scored {len(scored_studies)}/{len(studies)} studies")
             return scored_studies
 
         except Exception as e:
-            print(f"⚠️  Batch scoring failed, using fallback for all studies: {e}")
+            logger.warning(f"Batch scoring failed, using fallback for all studies: {e}")
             return [{**study, **_fallback_score(study)} for study in studies]
 
     def rank_studies(self, scored_studies: List[Study], top_n: int = 5) -> List[Study]:
@@ -186,7 +189,7 @@ Return ONLY the JSON array, no other text."""
         raw_studies = state.get("raw_studies", [])
 
         if not raw_studies:
-            print("⚠️  No studies to evaluate")
+            logger.warning("No studies to evaluate")
             return {**state, "scored_studies": [], "top_studies": []}
 
         try:
@@ -196,14 +199,7 @@ Return ONLY the JSON array, no other text."""
             # Step 2: Rank and select top studies
             top_studies = self.rank_studies(scored_studies, top_n=5)
 
-            # Step 3: Display results
-            print(f"\n🏆 Top {len(top_studies)} Studies:")
-            for i, study in enumerate(top_studies, 1):
-                score = study.get("quality_score", 0)
-                print(f"\n   {i}. [{score:.1f}/10] {study['title'][:80]}...")
-                print(f"      {study['authors']} ({study['year']})")
-                print(f"      Type: {study['study_type']}, n={study['sample_size']}")
-                print(f"      Rationale: {study.get('quality_rationale', 'N/A')[:100]}")
+            logger.info(f"Selected top {len(top_studies)} studies")
 
             # Return updated state
             return {
@@ -213,7 +209,7 @@ Return ONLY the JSON array, no other text."""
             }
 
         except Exception as e:
-            print(f"❌ Quality Evaluator failed: {e}")
+            logger.error(f"Quality Evaluator failed: {e}")
             # Return studies unscored if evaluation fails
             return {
                 **state,

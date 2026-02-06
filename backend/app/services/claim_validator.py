@@ -1,10 +1,19 @@
 """Claim validation service - ensures claims are specific and testable."""
 
+import logging
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import settings
 from app.utils.retry import invoke_with_retry
+from app.utils.sanitize import (
+    sanitize_claim,
+    wrap_user_content,
+    get_security_instruction,
+    is_claim_suspicious,
+)
 import json
+
+logger = logging.getLogger(__name__)
 
 
 class ClaimValidationError(Exception):
@@ -32,6 +41,12 @@ async def validate_claim(claim: str) -> dict:
     Raises:
         ClaimValidationError: If the claim is too vague
     """
+    # Security: Check and sanitize input
+    if is_claim_suspicious(claim):
+        logger.warning(f"Suspicious claim detected (possible injection attempt)")
+
+    sanitized_claim = sanitize_claim(claim)
+
     llm = ChatGroq(
         model="llama-3.3-70b-versatile", api_key=settings.groq_api_key, temperature=0
     )
@@ -60,11 +75,15 @@ Respond with JSON only:
   "suggestions": ["specific claim 1", "specific claim 2", "specific claim 3"]
 }
 
-If valid, suggestions can be empty. If invalid, provide 2-3 specific claim suggestions based on common research questions about the topic."""
+If valid, suggestions can be empty. If invalid, provide 2-3 specific claim suggestions based on common research questions about the topic.
+""" + get_security_instruction()
+
+    # Wrap user content in tags for clear boundary
+    wrapped_claim = wrap_user_content(sanitized_claim)
 
     messages = [
         SystemMessage(content=system_prompt),
-        HumanMessage(content=f'Claim: "{claim}"'),
+        HumanMessage(content=f"Analyze this health claim:\n{wrapped_claim}"),
     ]
 
     response = await invoke_with_retry(llm, messages)

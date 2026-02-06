@@ -1,6 +1,7 @@
 """Verity API endpoints."""
 
 import time
+import logging
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -12,6 +13,8 @@ from app.services.cache import get_cached_result, save_to_cache
 from app.services.claim_validator import validate_claim, ClaimValidationError
 from app.utils.retry import RateLimitExceeded
 from app.utils.rate_limit import rate_limit
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/api/verity", tags=["verity"])
@@ -228,7 +231,7 @@ async def verify_claim(request: VerifyClaimRequest, db: AsyncSession = Depends(g
             },
         )
     except Exception as e:
-        print(f"❌ Unhandled error in /verify: {e}")
+        logger.exception("Unhandled error in /verify")
         raise HTTPException(
             status_code=500, detail="Something went wrong. Please try again later."
         )
