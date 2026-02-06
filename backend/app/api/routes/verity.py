@@ -146,18 +146,21 @@ async def verify_claim(request: VerifyClaimRequest, db: AsyncSession = Depends(g
         print(f"🚀 Starting pipeline for: {request.claim}")
         result = await run_verity(request.claim)
         print(f"✅ Pipeline complete. Result keys: {list(result.keys())}")
-        print(f"   raw_studies count: {len(result.get('raw_studies', []))}")
+        print(f"   raw_studies: {result.get('raw_studies')} (type: {type(result.get('raw_studies'))})")
+        print(f"   search_error: {result.get('search_error')}")
         execution_time = time.time() - start_time
 
         # Check if we got an error
         if result.get("search_error"):
+            print(f"❌ Search error detected: {result.get('search_error')}")
             raise HTTPException(
                 status_code=500, detail=f"Search failed: {result['search_error']}"
             )
 
         # Handle case where no studies were found
+        print(f"🔍 Checking raw_studies: bool={bool(result.get('raw_studies'))}")
         if not result.get("raw_studies"):
-            print(f"📭 No studies found. Result keys: {result.keys()}")
+            print(f"📭 No studies found - returning early")
             return VerifyClaimResponse(
                 claim=result.get("claim", request.claim),
                 verdict="Inconclusive",
