@@ -35,7 +35,6 @@ class VerifyClaimRequest(BaseModel):
         }
 
 
-
 class VerifyClaimResponse(BaseModel):
     """Response model for claim verification."""
 
@@ -217,7 +216,7 @@ async def verify_claim(request: VerifyClaimRequest, db: AsyncSession = Depends(g
                 "retry_after": 60,
             },
         )
-    except Exception as e:
+    except Exception:
         logger.exception("Unhandled error in /verify")
         raise HTTPException(
             status_code=500, detail="Something went wrong. Please try again later."

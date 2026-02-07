@@ -43,7 +43,7 @@ async def validate_claim(claim: str) -> dict:
     """
     # Security: Check and sanitize input
     if is_claim_suspicious(claim):
-        logger.warning(f"Suspicious claim detected (possible injection attempt)")
+        logger.warning("Suspicious claim detected (possible injection attempt)")
 
     sanitized_claim = sanitize_claim(claim)
 

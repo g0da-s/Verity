@@ -18,7 +18,7 @@ async def get_cached_result(db: AsyncSession, claim: str) -> CachedResult | None
     Updates last_accessed timestamp on cache hit.
     """
     normalized = normalize_claim(claim)
-    logger.debug(f"Cache lookup for normalized claim")
+    logger.debug("Cache lookup for normalized claim")
 
     result = await db.execute(
         select(CachedResult).where(CachedResult.normalized_claim == normalized)

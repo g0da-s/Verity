@@ -4,7 +4,7 @@ This agent:
 1. Takes raw studies from Search Agent
 2. Uses Groq to score each study (0-10)
 3. Considers: study type, sample size, journal, recency
-4. Returns top 5-10 highest quality studies
+4. Returns top 5 highest quality studies
 
 Ensures only high-quality evidence is used for final verdict.
 """
@@ -12,7 +12,7 @@ Ensures only high-quality evidence is used for final verdict.
 import json
 import logging
 import re
-from typing import List, Dict
+from typing import List
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import settings
@@ -22,7 +22,7 @@ from app.models.state import VerityState, Study
 logger = logging.getLogger(__name__)
 
 
-def _fallback_score(study: Study) -> Dict:
+def _fallback_score(study: Study) -> dict:
     """Heuristic score used when the LLM call fails or returns unparseable output."""
     score = 5.0
     study_type = study.get("study_type", "").lower()
@@ -40,7 +40,7 @@ def _fallback_score(study: Study) -> Dict:
 
     return {
         "quality_score": min(10.0, score),
-        "quality_rationale": f"Fallback score based on {study_type} type",
+        "quality_rationale": f"Fallback score based on {study_type or 'unknown'} type",
     }
 
 
@@ -210,11 +210,12 @@ Return ONLY the JSON array, no other text."""
 
         except Exception as e:
             logger.error(f"Quality Evaluator failed: {e}")
-            # Return studies unscored if evaluation fails
+            # Return studies with fallback scores if evaluation fails
+            fallback_studies = [{**s, **_fallback_score(s)} for s in raw_studies]
             return {
                 **state,
-                "scored_studies": raw_studies,
-                "top_studies": raw_studies[:10],
+                "scored_studies": fallback_studies,
+                "top_studies": self.rank_studies(fallback_studies, top_n=5),
             }
 
 

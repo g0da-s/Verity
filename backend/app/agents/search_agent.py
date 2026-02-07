@@ -17,7 +17,11 @@ from app.config import settings
 from app.models.state import VerityState
 from app.tools.pubmed import PubMedTool
 from app.utils.retry import invoke_with_retry
-from app.utils.sanitize import sanitize_claim, wrap_user_content, get_security_instruction
+from app.utils.sanitize import (
+    sanitize_claim,
+    wrap_user_content,
+    get_security_instruction,
+)
 
 logger = logging.getLogger(__name__)
 

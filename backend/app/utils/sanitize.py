@@ -20,25 +20,21 @@ INJECTION_PATTERNS = [
     r"forget\s+(all\s+)?(previous|above|prior|earlier)\s+(instructions?|prompts?)",
     r"do\s+not\s+follow\s+(the\s+)?(previous|above|prior)\s+instructions?",
     r"override\s+(all\s+)?(previous|prior)\s+(instructions?|rules?)",
-
     # Direct output manipulation
     r"output\s*[:=]\s*[\{\[]",
     r"respond\s+with\s*[:=]\s*[\{\[]",
     r"return\s*[:=]\s*[\{\[]",
     r"print\s*[:=]\s*[\{\[]",
-    r'your\s+(response|output|answer)\s+(should|must|will)\s+be\s*[:=]?\s*[\{\[]',
-
+    r"your\s+(response|output|answer)\s+(should|must|will)\s+be\s*[:=]?\s*[\{\[]",
     # Role manipulation
     r"you\s+are\s+now\s+(a|an|in)\s+",
     r"act\s+as\s+(a|an|if)\s+",
     r"pretend\s+(to\s+be|you\s+are)\s+",
     r"roleplay\s+as\s+",
     r"switch\s+(to\s+)?(a\s+)?(different\s+)?mode",
-
     # System prompt extraction
     r"(show|reveal|display|print|output)\s+(me\s+)?(your|the)\s+(system\s+)?(prompt|instructions?)",
     r"what\s+(are|is)\s+your\s+(system\s+)?(prompt|instructions?)",
-
     # JSON/code injection
     r'"\s*:\s*true\s*[,\}]',  # Trying to inject JSON values
     r'"\s*:\s*false\s*[,\}]',
