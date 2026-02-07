@@ -1,5 +1,7 @@
 # Verity — Evidence-Based Health Claim Verification
 
+**Live Demo:** [ask-verity.vercel.app](https://ask-verity.vercel.app/)
+
 An AI-powered application that verifies health claims using scientific evidence from PubMed. A 3-agent LangGraph pipeline searches for studies, scores their quality, and synthesizes an evidence-based verdict.
 
 ## How It Works
