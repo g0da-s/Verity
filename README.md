@@ -85,4 +85,10 @@ uv run pytest tests/
 
 ---
 
+## Roadmap
+
+🚧 **Currently updating this tool to include semantic search in the database** — enabling better retrieval of similar claims and cached results based on meaning rather than exact text matches.
+
+---
+
 Built by Goda Smulkstyte for Turing College.
